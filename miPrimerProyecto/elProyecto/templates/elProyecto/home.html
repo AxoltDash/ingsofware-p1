@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <title>{% block title %}Mi Sitio Web{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'index.css' %}">
+
+</head>
+
+<body>
+
+<!-- Cabecera -->
+<header>
+
+    <div class="header-container">
+
+        <div class="header-text">
+            {% block header %}
+            <h1>Bienvenido al tour de los conciertos a los que fui y a los que voy a ir en el futuro</h1>
+            <p>Disfrute del recorrido</p>
+
+            <a href="{% url 'creepyNuts' %}">
+                <button>Ir a mi segundo concierto</button>
+            </a>
+
+            <a href="{% url 'siames' %}">
+                <button>Ir a mi tercer concierto</button>
+            </a>
+            {% endblock %}
+        </div>
+
+    </div>
+
+</header>
+
+<page-bar>
+
+    {% if user.is_authenticated %}
+    <form action="{% url 'logout' %}" method="POST">
+        {% csrf_token %}
+        <button class="logout-btn">Cerrar sesión</button>
+    </form>
+    {% endif %}
+
+</page-bar>
+
+<!-- Cuerpo -->
+<main>
+    {% block content %}
+    <h2>Mi primer concieto</h2>
+    <p>
+        Este es el primer concierto al que he ido.
+    </p>
+
+    {% endblock %}
+
+
+</main>
+
+<imagen-centrada>
+
+    <img src="{% static 'images/Prueba0.jpeg' %}" alt="Imagen">
+
+</imagen-centrada>
+
+
+<!-- Pie de página -->
+<footer>
+    {% block footer %}
+    <p>© 2026 Mi Sitio Web</p>
+    <p>Este es el pie de página</p>
+    {% endblock %}
+</footer>
+
+<script src="{% static 'main.js' %}"></script>
+
+</body>
+</html>

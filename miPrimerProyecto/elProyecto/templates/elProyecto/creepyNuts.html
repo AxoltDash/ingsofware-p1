@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <title>{% block title %}Mi Sitio Web{% endblock %}</title>
+
+    <!-- CSS estático -->
+    <link rel="stylesheet" href="{% static 'index.css' %}">
+
+</head>
+
+<body>
+
+<!-- Cabecera -->
+<header>
+    {% block header %}
+    <h1>Esta pagina antiguamente servía como referencia para otras paginas</h1>
+    <p>Ahora esto funciona desde index.css</p>
+
+    <a href="{% url 'home' %}">
+    <button>Ir a mi primer concierto</button>
+    </a>
+
+    <a href="{% url 'siames' %}">
+    <button>Ir a mi tercer concierto</button>
+    </a>
+
+    {% endblock %}
+</header>
+
+<!-- Cuerpo -->
+<main>
+    {% block content %}
+    <h2>Mi segundo concieto</h2>
+    <p>
+        Este es el segundo concierto al que voy a ir pronto.
+    </p>
+
+    {% endblock %}
+
+
+</main>
+
+<imagen-centrada>
+
+    <img src="{% static 'images/Prueba3.jpeg' %}" alt="Imagen">
+
+</imagen-centrada>
+
+
+<!-- Pie de página -->
+<footer>
+    {% block footer %}
+    <p>© 2026 Mi Sitio Web</p>
+    <p>Este es el pie de página</p>
+    {% endblock %}
+</footer>
+
+</body>
+</html>

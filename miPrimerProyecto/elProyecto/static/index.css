@@ -1,0 +1,60 @@
+body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+}
+
+/* Cabecera */
+header{
+    background:#2c3e50;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+/* Cuerpo */
+main{
+    flex:1;
+    padding:40px;
+    background:#f4f4f4;
+}
+
+/* Pie de página */
+footer{
+    background:#2c3e50;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+imagen-centrada{
+    padding:20px;
+    text-align:center;
+    background:#f4f4f4;
+}
+
+/* ================= PAGE BAR ================= */
+
+page-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:red;
+    padding:20px 40px;
+    width:100%;
+    box-sizing:border-box;
+}
+
+/* botón logout estilo dashboard */
+.logout-btn{
+    background:#1f2937;
+    color:white;
+    border:none;
+    padding:10px 18px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:600;
+    text-align:right;
+}

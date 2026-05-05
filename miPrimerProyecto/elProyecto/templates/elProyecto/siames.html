@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <title>{% block title %}Mi Sitio Web{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'index.css' %}">
+
+</head>
+
+<body>
+
+<!-- Cabecera -->
+<header>
+    {% block header %}
+    <h1>Esto era una pagina que mostraba un dashboard</h1>
+    <p>Pero ya no mas...</p>
+
+    <a href="{% url 'home' %}">
+    <button>Ir a mi primer concierto</button>
+    </a>
+
+    <a href="{% url 'creepyNuts' %}">
+    <button>Ir a mi segundo concierto</button>
+    </a>
+
+    {% endblock %}
+</header>
+
+<!-- Cuerpo -->
+<main>
+    {% block content %}
+    <h2>Mi tercer concieto</h2>
+    <p>
+        Este es el tercer concierto al que voy a ir, pero es hasta vacaciones.
+    </p>
+
+    {% endblock %}
+
+
+</main>
+
+<imagen-centrada>
+
+    <img src="{% static 'images/Prueba1.jpeg' %}" alt="Imagen">
+
+</imagen-centrada>
+
+
+<!-- Pie de página -->
+<footer>
+    {% block footer %}
+    <p>© 2026 Mi Sitio Web</p>
+    <p>Este es el pie de página</p>
+    {% endblock %}
+</footer>
+
+</body>
+</html>
