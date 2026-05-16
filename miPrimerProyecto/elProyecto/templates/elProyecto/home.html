@@ -1,0 +1,24 @@
+{% extends "elProyecto/base.html" %}
+{% load static %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block header %}
+<h1>Bienvenido al tour de los conciertos a los que fui y a los que voy a ir</h1>
+<p>Disfrute del recorrido</p>
+{% endblock %}
+
+{% block content %}
+<h2>Mi primer concierto</h2>
+<p>Este es el primer concierto al que he ido.</p>
+{% endblock %}
+
+{% block img %}
+<imagen-centrada>
+    <img src="{% static 'images/Prueba0.jpeg' %}" alt="Imagen">
+</imagen-centrada>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'main.js' %}"></script>
+{% endblock %}

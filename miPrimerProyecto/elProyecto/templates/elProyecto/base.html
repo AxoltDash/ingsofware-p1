@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Mi Sitio{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'index.css' %}">
+</head>
+
+<body>
+
+<!-- HEADER -->
+<header>
+    {% block header %}
+    <h1>Mi sitio web</h1>
+    {% endblock %}
+</header>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <a href="{% url 'home' %}">Primer concierto</a>
+    <a href="{% url 'creepyNuts' %}">Segundo concierto</a>
+    <a href="{% url 'siames' %}">Tercer concierto</a>
+
+    {% if user.is_authenticated %}
+
+        <form action="{% url 'logout' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Cerrar sesión</button>
+        </form>
+
+    {% else %}
+        <a href="{% url 'login' %}">Iniciar sesión</a>
+        <a href="{% url 'registro' %}">Registrarse</a>
+    {% endif %}
+
+</nav>
+
+<!-- CONTENIDO -->
+<main>
+    {% block content %}
+    {% endblock %}
+</main>
+
+{% block img %}
+{% endblock %}
+
+<!-- FOOTER -->
+<footer>
+    {% block footer %}
+    <p>© 2026 Mi Sitio Web</p>
+    {% endblock %}
+</footer>
+
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>

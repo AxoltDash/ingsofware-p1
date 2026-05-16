@@ -1,0 +1,58 @@
+body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+}
+
+/* Cabecera */
+header{
+    background:#2c3e50;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+/* Cuerpo */
+main{
+    flex:1;
+    padding:40px;
+    background:#f4f4f4;
+}
+
+/* Pie de página */
+footer{
+    background:#2c3e50;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+imagen-centrada{
+    padding:20px;
+    text-align:center;
+    background:#f4f4f4;
+}
+
+.navbar{
+    background:#34495e;
+    display:flex;
+    justify-content:center;   /* CENTRADO HORIZONTAL */
+    align-items:center;
+    gap:20px;
+    padding:15px;
+}
+
+.navbar a{
+    color:white;
+    text-decoration:none;
+    font-weight:bold;
+    padding:10px 15px;
+    border-radius:6px;
+    transition:0.3s;
+}
+
+.navbar a:hover{
+    background:#2c3e50;
+}
