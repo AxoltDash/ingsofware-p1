@@ -1,0 +1,282 @@
+
+.auth-body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at top right, rgba(246, 201, 68, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(29, 158, 117, 0.18) 0%, transparent 50%),
+    linear-gradient(135deg, var(--noche) 0%, var(--bosque-oscuro) 60%, var(--bosque-medio) 100%);
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: center;
+
+  padding: 40px 20px;
+  position: relative;
+
+  overflow-y: auto;
+}
+
+/* Luciérnagas de fondo */
+.auth-body::before,
+.auth-body::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: var(--luc-glow);
+  box-shadow: 0 0 12px var(--luc), 0 0 24px rgba(246,201,68,0.5);
+  pointer-events: none;
+}
+
+.auth-body::before {
+  width: 5px; height: 5px;
+  top: 18%; left: 12%;
+  animation: parpadear 3s ease-in-out infinite, flotar 8s ease-in-out infinite;
+}
+
+.auth-body::after {
+  width: 4px; height: 4px;
+  top: 70%; right: 14%;
+  animation: parpadear 4s ease-in-out infinite 1s, flotar 10s ease-in-out infinite 2s;
+}
+
+@keyframes parpadear {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+@keyframes flotar {
+  0%, 100% { transform: translateY(0)    translateX(0); }
+  25%      { transform: translateY(-20px) translateX(10px); }
+  50%      { transform: translateY(-10px) translateX(-15px); }
+  75%      { transform: translateY(-30px) translateX(5px); }
+}
+
+/* Card principal */
+.auth-card {
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 40px 36px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(246, 201, 68, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+/* Logo arriba de la card */
+.auth-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.auth-logo-icono {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 0 5px rgba(246, 201, 68, 0.15),
+              0 0 25px rgba(246, 201, 68, 0.5);
+  animation: latido 3s ease-in-out infinite;
+}
+
+@keyframes latido {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(246, 201, 68, 0.15), 0 0 25px rgba(246, 201, 68, 0.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(246, 201, 68, 0.20), 0 0 35px rgba(246, 201, 68, 0.7); }
+}
+
+.auth-logo-titulo {
+  font-family: var(--font-titulo);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bosque-medio);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-logo-sub {
+  font-size: 11px;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
+.auth-title {
+  font-family: var(--font-titulo);
+  color: var(--bosque-oscuro);
+  text-align: center;
+  margin-bottom: 6px;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+
+/* Inputs (estos selectores aplican también a los que renderiza crispy) */
+.auth-card form { margin-top: 4px; }
+
+.auth-card label,
+.auth-card .form-label,
+.auth-card .col-form-label {
+  color: var(--bosque-medio) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  display: block;
+}
+
+.auth-card input,
+.auth-card .form-control {
+  width: 100%;
+  padding: 13px 16px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid var(--borde) !important;
+  background: var(--fondo) !important;
+  color: var(--texto) !important;
+  outline: none;
+  font-size: 14px !important;
+  font-family: var(--font-cuerpo) !important;
+  transition: all var(--t-rapida);
+  box-shadow: none !important;
+}
+
+.auth-card input::placeholder,
+.auth-card .form-control::placeholder {
+  color: #A0AEA0;
+}
+
+.auth-card input:focus,
+.auth-card .form-control:focus {
+  border-color: var(--luc) !important;
+  background: var(--blanco) !important;
+  box-shadow: 0 0 0 4px rgba(246, 201, 68, 0.15) !important;
+}
+
+/* Help text y errores de crispy */
+.auth-card .form-text,
+.auth-card small,
+.auth-card .helptext {
+  font-size: 11.5px !important;
+  color: var(--texto-suave) !important;
+  margin-top: 4px;
+  display: block;
+}
+
+.auth-card .invalid-feedback,
+.auth-card .errorlist {
+  color: #C53030 !important;
+  font-size: 12px !important;
+  list-style: none;
+  padding-left: 0;
+  margin-top: 4px;
+}
+
+.auth-card ul.errorlist li { padding: 4px 0; }
+
+.auth-card .mb-3,
+.auth-card .form-group { margin-bottom: 16px !important; }
+
+/* Botón */
+.btn-login,
+.btn-register,
+.auth-card .btn-login,
+.auth-card .btn-register {
+  width: 100%;
+  padding: 14px !important;
+  background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-family: var(--font-cuerpo) !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: var(--bosque-oscuro) !important;
+  cursor: pointer;
+  transition: all var(--t-media);
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 16px rgba(246, 201, 68, 0.35) !important;
+}
+
+.btn-login:hover,
+.btn-register:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(246, 201, 68, 0.55) !important;
+}
+
+.btn-login:active,
+.btn-register:active {
+  transform: translateY(0);
+}
+
+/* Link a registro/login */
+.register-link,
+.register-text,
+.login-text {
+  margin-top: 24px;
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 13.5px;
+}
+
+.register-link a,
+.register-text a,
+.login-text a {
+  color: var(--bosque) !important;
+  text-decoration: none;
+  font-weight: 700;
+  transition: color var(--t-rapida);
+}
+
+.register-link a:hover,
+.register-text a:hover,
+.login-text a:hover {
+  color: var(--luc-fuerte) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Link "Volver al inicio" */
+.auth-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  color: var(--menta-clara);
+  font-size: 13px;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity var(--t-rapida);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-volver:hover {
+  opacity: 1;
+  color: var(--luc-glow);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-card { padding: 32px 24px; border-radius: 16px; }
+  .auth-title { font-size: 24px; }
+}

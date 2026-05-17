@@ -1,0 +1,48 @@
+{% extends 'elProyecto/base.html' %}
+{% load static %}
+
+{% block title %}Bosques — Festival Luciérnagas 2026{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/bosques.css' %}">
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="bienvenida">
+  <div class="luciernagas" aria-hidden="true">
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+  </div>
+  <span class="badge">🌲 Temporada activa</span>
+  <h2>Bosques <span class="acento">disponibles</span></h2>
+  <p>Explora los parques oficiales del festival y elige tu lugar favorito para vivir la magia de las luciérnagas.</p>
+</section>
+
+<section class="seccion">
+  <h3 class="seccion-titulo">Parques oficiales</h3>
+  <div class="bosques-grid">
+    {% for parque in parques %}
+    <div class="bosque-card">
+      <div class="bosque-icono">🌲</div>
+      <h4>{{ parque.nombre }}</h4>
+      <p class="bosque-dir">📍 {{ parque.direccion }}</p>
+      <p class="bosque-horario">🕐 {{ parque.horario }}</p>
+      <div class="bosque-tipos">
+        <span class="tipo-tag tipo-camping">⛺ Camping</span>
+        {% if parque.tiene_cabana %}
+        <span class="tipo-tag tipo-cabana">🏡 Cabaña</span>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="bosques-vacio">
+      <div class="bosques-vacio-icono">🌙</div>
+      <p>No hay parques registrados aún.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
