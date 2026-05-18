@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -23,6 +24,13 @@ class Reservacion(models.Model):
                           on_delete=models.PROTECT,
                           related_name='reservaciones'
                       )
+    cabana          = models.ForeignKey(
+                          'parques.Cabana',
+                          on_delete=models.PROTECT,
+                          related_name='reservaciones',
+                          null=True,
+                          blank=True
+                      )
     fecha_inicio    = models.DateField()
     fecha_termino   = models.DateField()
     numero_personas = models.PositiveIntegerField()
@@ -33,6 +41,15 @@ class Reservacion(models.Model):
                           default=EstadoReservacion.ACTIVA
                       )
     fecha_creacion  = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        """[OWASP 2.1] Invariante: CABANA requiere cabana, CAMPING no debe tenerla."""
+        if self.tipo_visita == TipoVisita.CABANA and self.cabana is None:
+            raise ValidationError("Una reservación de cabaña requiere especificar la cabaña.")
+        if self.tipo_visita == TipoVisita.CAMPING and self.cabana is not None:
+            raise ValidationError("Una reservación de camping no debe tener cabaña asignada.")
+        if self.cabana and self.cabana.parque_id != self.parque_id:
+            raise ValidationError("La cabaña no pertenece al parque seleccionado.")
 
     class Meta:
         verbose_name = 'reservación'

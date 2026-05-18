@@ -1,5 +1,6 @@
-from datetime import date, timedelta
-from django.db import models, transaction
+from datetime import timedelta
+from django.db import transaction
+from django.db.models import Sum
 
 from .models import Reservacion, TipoVisita, EstadoReservacion
 
@@ -8,79 +9,122 @@ class GestorReservaciones:
 
     @staticmethod
     def verificar_periodo_festival(fecha_inicio, fecha_termino):
-        """RN-01: solo junio-agosto"""
+        """RN-01: solo junio-agosto [OWASP 2.1]"""
         meses_validos = {6, 7, 8}
-        if fecha_inicio.month not in meses_validos:
-            raise ValueError("La fecha de inicio debe ser entre junio y agosto.")
-        if fecha_termino.month not in meses_validos:
-            raise ValueError("La fecha de término debe ser entre junio y agosto.")
+        if fecha_inicio.month not in meses_validos or fecha_termino.month not in meses_validos:
+            raise ValueError("Las reservaciones solo son válidas de junio a agosto.")
 
     @staticmethod
     def verificar_no_martes(fecha_inicio, fecha_termino):
-        """RN-02: ningún día del rango puede ser martes"""
-        fecha_actual = fecha_inicio
-        while fecha_actual <= fecha_termino:
-            if fecha_actual.weekday() == 1:
+        """RN-02: ningún día del rango puede ser martes [OWASP 2.1]"""
+        fecha = fecha_inicio
+        while fecha <= fecha_termino:
+            if fecha.weekday() == 1:
                 raise ValueError("Las reservaciones no pueden incluir días martes.")
-            fecha_actual += timedelta(days=1)
+            fecha += timedelta(days=1)
 
     @staticmethod
-    def verificar_traslape(parque, fecha_inicio, fecha_termino, tipo_visita,
-                           excluir_id=None):
-        """RF-03.8: no reservaciones traslapadas"""
-        qs = Reservacion.objects.filter(
+    def cabanas_disponibles(parque, fecha_inicio, fecha_termino, numero_personas):
+        """
+        Devuelve cabañas del parque que cumplen ambas condiciones:
+          1. Capacidad individual >= numero_personas
+          2. Sin reservación ACTIVA solapada en el rango de fechas
+        Usado para mostrar opciones al cliente antes de reservar. [OWASP 2.1, 2.11]
+        """
+        from parques.models import Cabana
+        cabanas_ocupadas_ids = Reservacion.objects.filter(
             parque=parque,
-            tipo_visita=tipo_visita,
+            tipo_visita=TipoVisita.CABANA,
             estado=EstadoReservacion.ACTIVA,
             fecha_inicio__lt=fecha_termino,
-            fecha_termino__gt=fecha_inicio,
-        )
-        if excluir_id:
-            qs = qs.exclude(id=excluir_id)
-        return qs.exists()
+            fecha_termino__gt=fecha_inicio
+        ).values_list('cabana_id', flat=True)
+
+        return Cabana.objects.filter(
+            parque=parque,
+            activo=True,
+            capacidad__gte=numero_personas
+        ).exclude(id__in=cabanas_ocupadas_ids)
 
     @staticmethod
-    def verificar_disponibilidad(parque, fecha_inicio, fecha_termino,
-                                 tipo_visita, numero_personas):
-        """RN-07, RN-08: respetar capacidad máxima"""
-        ocupacion = Reservacion.objects.filter(
-            parque=parque,
-            tipo_visita=tipo_visita,
-            estado=EstadoReservacion.ACTIVA,
-            fecha_inicio__lt=fecha_termino,
-            fecha_termino__gt=fecha_inicio,
-        ).aggregate(total=models.Sum('numero_personas'))['total'] or 0
-
-        capacidad = (
-            parque.capacidad_cabanas
-            if tipo_visita == TipoVisita.CABANA
-            else parque.capacidad_camping
-        )
-
-        if ocupacion + numero_personas > capacidad:
+    def verificar_disponibilidad_cabana(cabana, fecha_inicio, fecha_termino, numero_personas):
+        """
+        Verifica que una cabaña específica esté libre y tenga capacidad suficiente.
+        select_for_update() evita race conditions (RNF-05). [OWASP 2.1, 2.11]
+        """
+        if numero_personas > cabana.capacidad:
             raise ValueError(
-                f"No hay disponibilidad suficiente. "
-                f"Disponible: {capacidad - ocupacion} lugares."
+                f"El grupo ({numero_personas} personas) excede la capacidad "
+                f"de {cabana.nombre} ({cabana.capacidad} personas máx)."
+            )
+        solapada = Reservacion.objects.select_for_update().filter(
+            cabana=cabana,
+            estado=EstadoReservacion.ACTIVA,
+            fecha_inicio__lt=fecha_termino,
+            fecha_termino__gt=fecha_inicio
+        ).exists()
+        if solapada:
+            raise ValueError(
+                f"{cabana.nombre} ya está reservada para esas fechas. "
+                "Por favor selecciona otra cabaña disponible."
+            )
+
+    @staticmethod
+    def verificar_disponibilidad_camping(parque, fecha_inicio, fecha_termino, numero_personas):
+        """
+        Camping: acumulable. Varios grupos coexisten hasta capacidad_camping.
+        select_for_update() evita race conditions. [OWASP 2.1, 2.11]
+        """
+        personas_ocupadas = Reservacion.objects.select_for_update().filter(
+            parque=parque,
+            tipo_visita=TipoVisita.CAMPING,
+            estado=EstadoReservacion.ACTIVA,
+            fecha_inicio__lt=fecha_termino,
+            fecha_termino__gt=fecha_inicio
+        ).aggregate(total=Sum('numero_personas'))['total'] or 0
+
+        disponible = parque.capacidad_camping - personas_ocupadas
+        if numero_personas > disponible:
+            raise ValueError(
+                f"Sin disponibilidad en camping. "
+                f"Lugares disponibles: {disponible}, solicitados: {numero_personas}."
             )
 
     @classmethod
-    def crear_reservacion(cls, cliente, parque, fecha_inicio,
-                          fecha_termino, numero_personas, tipo_visita):
-        """CU-03: crea reservación validando todas las reglas de negocio."""
+    def crear_reservacion(cls, cliente, parque, fecha_inicio, fecha_termino,
+                          numero_personas, tipo_visita, cabana=None):
+        """
+        CU-03 — Punto de entrada único para crear reservaciones.
+        Para CABANA: cabana debe ser una instancia de Cabana del parque correcto.
+        Para CAMPING: cabana debe ser None.
+        transaction.atomic() garantiza consistencia ante concurrencia. [OWASP 2.1, 2.11]
+        """
+        if tipo_visita == TipoVisita.CABANA and cabana is None:
+            raise ValueError("Debes seleccionar una cabaña para este tipo de reservación.")
+        if tipo_visita == TipoVisita.CAMPING and cabana is not None:
+            raise ValueError("Las reservaciones de camping no requieren cabaña.")
+        if cabana and cabana.parque_id != parque.id:
+            raise ValueError("La cabaña seleccionada no pertenece al parque indicado.")
+
         with transaction.atomic():
             cls.verificar_periodo_festival(fecha_inicio, fecha_termino)
             cls.verificar_no_martes(fecha_inicio, fecha_termino)
-            cls.verificar_disponibilidad(
-                parque, fecha_inicio, fecha_termino, tipo_visita, numero_personas
-            )
-            if cls.verificar_traslape(parque, fecha_inicio, fecha_termino, tipo_visita):
-                raise ValueError("Ya existe una reservación para ese parque y fechas.")
+
+            if tipo_visita == TipoVisita.CABANA:
+                cls.verificar_disponibilidad_cabana(
+                    cabana, fecha_inicio, fecha_termino, numero_personas
+                )
+            else:
+                cls.verificar_disponibilidad_camping(
+                    parque, fecha_inicio, fecha_termino, numero_personas
+                )
 
             return Reservacion.objects.create(
                 cliente=cliente,
                 parque=parque,
+                cabana=cabana,
                 fecha_inicio=fecha_inicio,
                 fecha_termino=fecha_termino,
                 numero_personas=numero_personas,
-                tipo_visita=tipo_visita,
+                tipo_visita=tipo_visita
             )
