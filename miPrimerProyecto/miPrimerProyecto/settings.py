@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'crispy_forms',
     'crispy_bootstrap5',
+    'axes',       # bloqueo por intentos fallidos de login [OWASP 2.3]
     'usuarios',
     'parques',
     'reservaciones',
@@ -52,13 +53,34 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
+# [OWASP 2.3] Argon2 como hasher de contraseñas (más resistente a fuerza bruta que PBKDF2)
+PASSWORD_HASHERS = ['django.contrib.auth.hashers.Argon2PasswordHasher']
+
+# [OWASP 2.4] Seguridad de cookies de sesión
+SESSION_COOKIE_HTTPONLY = True   # JavaScript no puede leer la cookie de sesión
+SESSION_COOKIE_SAMESITE = 'Lax' # protege contra CSRF en requests cross-site
+SESSION_COOKIE_AGE      = 3600  # sesión expira en 1 hora de inactividad
+SESSION_COOKIE_SECURE   = not DEBUG  # True en prod (HTTPS), False en dev
+
+# [OWASP 2.4] Seguridad de la cookie CSRF
+CSRF_COOKIE_SECURE = not DEBUG  # True en prod (HTTPS), False en dev
+
+# [OWASP 2.3] Bloqueo por intentos fallidos de login — django-axes
+AXES_FAILURE_LIMIT    = 5    # bloquea después de 5 intentos fallidos
+AXES_COOLOFF_TIME     = 1    # tiempo de bloqueo en horas
+AXES_RESET_ON_SUCCESS = True # reinicia el contador si el login es exitoso
+
+# django-axes requiere su propio backend antes del ModelBackend
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',        # intercepta antes de autenticar
+    'django.contrib.auth.backends.ModelBackend',  # autenticación estándar de Django
+]
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-LOGIN_URL = '/accounts/login/'
-
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = "home"
+LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
 MIDDLEWARE = [
@@ -69,6 +91,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',  # registra intentos fallidos en la BD [OWASP 2.3]
 ]
 
 ROOT_URLCONF = 'miPrimerProyecto.urls'

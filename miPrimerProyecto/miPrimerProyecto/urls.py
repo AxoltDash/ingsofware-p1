@@ -1,11 +1,8 @@
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
 
 urlpatterns = [
-
     path('admin/', admin.site.urls),
-        path('', include('elProyecto.urls')),
-
-        path('accounts/', include('django.contrib.auth.urls')),
-                                     
+    path('auth/', include('usuarios.urls')),  # login, logout, registro, recuperación de contraseña
+    path('', include('elProyecto.urls')),     # home, bosques y otras vistas del sitio
 ]
