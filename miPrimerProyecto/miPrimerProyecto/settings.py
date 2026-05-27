@@ -114,6 +114,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'miPrimerProyecto.wsgi.application'
 
 
+# Email — [OWASP 2.9] TLS obligatorio en prod
+# Por defecto: console en dev (imprime en terminal), smtp en prod.
+# Para enviar correos reales desde dev, agrega EMAIL_BACKEND=...smtp... en .env
+_backend_default = (
+    'django.core.mail.backends.console.EmailBackend' if DEBUG
+    else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_BACKEND = env('EMAIL_BACKEND', default=_backend_default)
+EMAIL_HOST          = env('EMAIL_HOST',          default='smtp.gmail.com')
+EMAIL_PORT          = env.int('EMAIL_PORT',      default=587)
+EMAIL_USE_TLS       = True                        # [OWASP 2.9] cifrado TLS obligatorio
+EMAIL_HOST_USER     = env('EMAIL_HOST_USER',     default='')  # [OWASP 2.8] en .env, nunca hardcodeado
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')  # [OWASP 2.8] usar App Password de Gmail en prod
+DEFAULT_FROM_EMAIL  = env('EMAIL_HOST_USER',     default='noreply@cepuac.mx')
+
+# URL base del sitio — usada para construir enlaces en correos (recuperación, confirmación)
+BASE_URL = env('BASE_URL', default='http://127.0.0.1:8000')
+
+
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 

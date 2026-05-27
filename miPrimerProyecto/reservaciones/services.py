@@ -1,8 +1,14 @@
+import logging
 from datetime import timedelta
+
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Sum
 
 from .models import Reservacion, TipoVisita, EstadoReservacion
+
+logger = logging.getLogger('cepuac')
 
 
 class GestorReservaciones:
@@ -131,3 +137,76 @@ class GestorReservaciones:
                 numero_personas=numero_personas,
                 tipo_visita=tipo_visita
             )
+
+
+class ServicioCorreo:
+    """
+    Singleton — agrupa todos los envíos de correo del sistema.
+    En dev (DEBUG=True) el backend es console: los correos se imprimen en terminal, no se envían.
+    En prod el backend es SMTP con TLS [OWASP 2.9].
+    [OWASP 2.7] Los métodos loggean solo IDs, nunca contenido personal ni contraseñas.
+    """
+    _instance = None
+
+    def __new__(cls):
+        # garantiza una sola instancia durante todo el ciclo de vida del proceso
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    @staticmethod
+    def enviar_confirmacion(reservacion):
+        """RF-03.2: notifica al cliente cuando su reservación es creada exitosamente."""
+        cabana_info = f" — {reservacion.cabana.nombre}" if reservacion.cabana else ""
+        tipo_display = reservacion.get_tipo_visita_display()
+
+        mensaje = (
+            f"Hola {reservacion.cliente.first_name},\n\n"
+            f"Tu reservación ha sido confirmada:\n\n"
+            f"  Parque:   {reservacion.parque.nombre}\n"
+            f"  Tipo:     {tipo_display}{cabana_info}\n"
+            f"  Personas: {reservacion.numero_personas}\n"
+            f"  Desde:    {reservacion.fecha_inicio}\n"
+            f"  Hasta:    {reservacion.fecha_termino}\n\n"
+            f"Gracias por participar en el Festival Internacional de las Luciérnagas 2026.\n\n"
+            f"CEPUAC — Sistema de Reservaciones\n"
+        )
+        try:
+            send_mail(
+                subject='Confirmación de reservación — CEPUAC',
+                message=mensaje,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[reservacion.cliente.email],
+                fail_silently=False,
+            )
+        except Exception:
+            # [OWASP 2.7] loggear solo el ID, nunca el contenido del correo ni datos del cliente
+            logger.error(f"Error al enviar confirmación reservacion_id={reservacion.id}")
+
+    @staticmethod
+    def enviar_recuperacion(usuario, token):
+        """RF-01.6: envía enlace de recuperación de contraseña.
+        [OWASP 2.3] El correo contiene solo el enlace, nunca la contraseña actual ni la nueva.
+        """
+        # construye el enlace absoluto usando BASE_URL del .env
+        link = f"{settings.BASE_URL}/auth/restablecer/{token}/"
+
+        mensaje = (
+            f"Hola {usuario.first_name},\n\n"
+            f"Recibimos una solicitud para restablecer la contraseña de tu cuenta.\n\n"
+            f"Usa el siguiente enlace para crear una nueva contraseña (válido 30 minutos):\n"
+            f"{link}\n\n"
+            f"Si no solicitaste este cambio, ignora este correo — tu contraseña no cambiará.\n\n"
+            f"CEPUAC — Sistema de Reservaciones\n"
+        )
+        try:
+            send_mail(
+                subject='Recuperación de contraseña — CEPUAC',
+                message=mensaje,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[usuario.email],
+                fail_silently=False,
+            )
+        except Exception:
+            # [OWASP 2.7] loggear solo el ID, nunca el token ni el correo del usuario
+            logger.error(f"Error al enviar recuperación usuario_id={usuario.id}")

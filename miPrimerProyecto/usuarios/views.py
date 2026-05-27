@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth import login, logout
 from django.shortcuts import get_object_or_404, redirect, render
 
+from reservaciones.services import ServicioCorreo
 from .forms import LoginForm, RecuperacionForm, RegistroClienteForm, RestablecerForm
 from .models import Cliente, PasswordResetToken
 
@@ -67,11 +68,8 @@ def solicitar_recuperacion(request):
 
             if usuario:
                 token_obj = PasswordResetToken.crear_para(usuario)
-                # TODO Fase 5: ServicioCorreo.enviar_recuperacion(usuario, token_obj.token)
+                ServicioCorreo.enviar_recuperacion(usuario, token_obj.token)  # en dev imprime en terminal; en prod envía por SMTP
                 logger.info(f"Recuperación solicitada usuario_id={usuario.id}")
-                # en dev, loggear el token para pruebas manuales
-                if __import__('django.conf', fromlist=['settings']).settings.DEBUG:
-                    logger.warning(f"[DEV] Token recuperación: {token_obj.token}")
 
             # [OWASP 2.3] misma respuesta aunque el correo no exista — evita enumeración de usuarios
             return render(request, 'usuarios/recuperar.html', {'form': form, 'enviado': True})

@@ -1,14 +1,35 @@
 import secrets
 from datetime import timedelta
 
-from django.contrib.auth.models import AbstractUser  # incluye password con hash+sal, is_active, date_joined, etc.
+from django.contrib.auth.models import AbstractUser, BaseUserManager  # incluye password con hash+sal, is_active, date_joined, etc.
 from django.db import models
 from django.utils import timezone
+
+
+class UsuarioManager(BaseUserManager):
+    """Manager personalizado que usa email en lugar de username."""
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('El correo electrónico es obligatorio.')
+        email = self.normalize_email(email)  # normaliza dominio a minúsculas
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)          # aplica el hasher configurado (Argon2)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        # createsuperuser llama a este método; sin él Django busca 'username' y falla
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
 
 
 class Usuario(AbstractUser):
     username = None  # eliminamos username el identificador de login será el email
     email = models.EmailField(unique=True)  # unique=True impide dos cuentas con el mismo correo
+
+    objects = UsuarioManager()  # reemplaza el UserManager por defecto que requería username
 
     USERNAME_FIELD = 'email'   # Django usará email en lugar de username al autenticar
     REQUIRED_FIELDS = []       # vacío porque email ya está en USERNAME_FIELD evita pedirlo dos veces en createsuperuser
