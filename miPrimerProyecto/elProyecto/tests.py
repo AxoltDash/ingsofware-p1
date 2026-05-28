@@ -55,7 +55,7 @@ def crear_cabana(parque, capacidad=4):
     )
 
 
-def crear_cliente(email='cliente@test.com', password='TestPass123!'):
+def crear_cliente(email='cliente@test.com', password='123!Pboart'):
     """Crea un Cliente (subclase de Usuario) listo para usar en vistas."""
     return ClienteModel.objects.create_user(email=email, password=password)
 
@@ -322,3 +322,53 @@ class GestorReservacionesTests(TestCase):
                 tipo_visita=TipoVisita.CAMPING,
             )
 
+# Pruebas del modulo para resetear la contraseña
+
+class PasswordResetTokenTests(TestCase):
+    """
+    Cubre la creación del token, su validez y la invalidación de tokens
+    anteriores al crear uno nuevo.
+    """
+
+    def setUp(self):
+        self.usuario = crear_cliente()
+
+    def test_crear_para_genera_token_unico(self):
+        """El token generado no debe ser vacío."""
+        token_obj = PasswordResetToken.crear_para(self.usuario)
+        self.assertTrue(len(token_obj.token) > 0)
+
+    def test_crear_para_expira_en_30_minutos(self):
+        """El token debe expirar aproximadamente 30 minutos después de ahora."""
+        token_obj = PasswordResetToken.crear_para(self.usuario)
+        delta = token_obj.expira - timezone.now()
+        self.assertAlmostEqual(delta.total_seconds(), 1800, delta=5)
+
+    def test_crear_para_invalida_tokens_anteriores(self):
+        """
+        Al crear un nuevo token, los anteriores no usados deben marcarse como
+        usados para impedir que un enlace viejo siga funcionando.
+        """
+        token_viejo = PasswordResetToken.crear_para(self.usuario)
+        PasswordResetToken.crear_para(self.usuario) 
+        token_viejo.refresh_from_db()
+        self.assertTrue(token_viejo.usado)
+
+    def test_es_valido_token_fresco(self):
+        """Un token recién creado debe ser válido."""
+        token_obj = PasswordResetToken.crear_para(self.usuario)
+        self.assertTrue(token_obj.es_valido())
+
+    def test_es_valido_token_usado(self):
+        """Un token marcado como usado no debe ser válido."""
+        token_obj = PasswordResetToken.crear_para(self.usuario)
+        token_obj.usado = True
+        token_obj.save()
+        self.assertFalse(token_obj.es_valido())
+
+    def test_es_valido_token_vencido(self):
+        """Un token con fecha de expiración en el pasado no debe ser válido."""
+        token_obj = PasswordResetToken.crear_para(self.usuario)
+        token_obj.expira = timezone.now() - timedelta(minutes=1)
+        token_obj.save()
+        self.assertFalse(token_obj.es_valido())
