@@ -589,3 +589,47 @@ class VistasRecuperacionTests(TestCase):
         url = reverse('restablecer_contrasenia', args=[token_obj.token])
         response = self.client.get(url)
         self.assertTrue(response.context['expirado'])
+
+
+# Pruebas vistas públicas.
+
+class VistasPublicasTests(TestCase):
+    """
+    Pruebas de integración para las vistas públicas:
+    home y bosques.
+    """
+
+    def setUp(self):
+        self.parque_activo   = crear_parque()
+        self.parque_inactivo = Parque.objects.create(
+            nombre='Parque Cerrado',
+            direccion='Calle X',
+            horario='08:00-18:00',
+            latitud='19.0',
+            longitud='-99.0',
+            activo=False,
+        )
+        self.cliente = crear_cliente()
+
+    def test_home_devuelve_200(self):
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_home_usa_plantilla_correcta(self):
+        response = self.client.get(reverse('home'))
+        self.assertTemplateUsed(response, 'elProyecto/home.html')
+
+    def test_bosques_devuelve_200(self):
+        response = self.client.get(reverse('bosques'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_bosques_solo_muestra_parques_activos(self):
+        """El contexto 'parques' no debe incluir parques con activo=False."""
+        response = self.client.get(reverse('bosques'))
+        parques_en_contexto = list(response.context['parques'])
+        self.assertIn(self.parque_activo,   parques_en_contexto)
+        self.assertNotIn(self.parque_inactivo, parques_en_contexto)
+
+    def test_url_inexistente_devuelve_404(self):
+        response = self.client.get('/esta/ruta/no/existe/')
+        self.assertEqual(response.status_code, 404)
