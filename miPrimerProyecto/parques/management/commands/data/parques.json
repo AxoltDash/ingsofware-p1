@@ -1,0 +1,135 @@
+[
+  {
+    "nombre": "Parque Nacional El Chico",
+    "direccion": "Carretera 105 Pachuca-Tampico, Km 7.5 desviación a Mineral del Chico, Hidalgo",
+    "servicios": ["baños", "estacionamiento", "asadores", "senderos", "mirador", "área de picnic", "guardabosques"],
+    "horario": "8:30 - 18:00",
+    "latitud": "20.199441",
+    "longitud": "-98.722030",
+    "tiene_cabanas": true,
+    "capacidad_camping": 100,
+    "cabanas": [
+      {"nombre": "Albergue Alpino Miguel Hidalgo", "capacidad": 20},
+      {"nombre": "Cabaña El Cedral", "capacidad": 6},
+      {"nombre": "Cabaña Las Ventanas", "capacidad": 4}
+    ]
+  },
+  {
+    "nombre": "Parque Nacional Desierto de los Leones",
+    "direccion": "Álvaro Obregón, Ciudad de México",
+    "servicios": ["baños", "estacionamiento", "senderos", "área de picnic", "guardabosques"],
+    "horario": "8:00 - 17:00",
+    "latitud": "19.295545",
+    "longitud": "-99.315796",
+    "tiene_cabanas": false,
+    "capacidad_camping": 0,
+    "cabanas": []
+  },
+  {
+    "nombre": "Parque Nacional La Marquesa (Insurgente Miguel Hidalgo y Costilla)",
+    "direccion": "Carretera México-Toluca Km 40, Ocoyoacac, Estado de México",
+    "servicios": ["baños", "estacionamiento", "asadores", "área de juegos", "tirolesa", "restaurante", "área de picnic"],
+    "horario": "8:00 - 18:00",
+    "latitud": "19.296796",
+    "longitud": "-99.365559",
+    "tiene_cabanas": true,
+    "capacidad_camping": 200,
+    "cabanas": [
+      {"nombre": "Cabaña Familiar Marquesa", "capacidad": 8},
+      {"nombre": "Cabaña Bosque", "capacidad": 4}
+    ]
+  },
+  {
+    "nombre": "Parque Nacional Cumbres del Ajusco",
+    "direccion": "Cerro Pico del Águila Km 21, Col. Héroes de 1910, Tlalpan, Ciudad de México",
+    "servicios": ["baños", "estacionamiento", "senderos", "mirador", "área de picnic"],
+    "horario": "6:00 - 18:00",
+    "latitud": "19.210140",
+    "longitud": "-99.259108",
+    "tiene_cabanas": false,
+    "capacidad_camping": 50,
+    "cabanas": []
+  },
+  {
+    "nombre": "Parque Nacional Iztaccíhuatl-Popocatépetl",
+    "direccion": "Plaza de la Constitución 9, Centro, Amecameca de Juárez, Estado de México",
+    "servicios": ["baños", "estacionamiento", "senderos", "mirador", "guardabosques", "albergue"],
+    "horario": "9:00 - 18:00",
+    "latitud": "19.208375",
+    "longitud": "-98.661240",
+    "tiene_cabanas": true,
+    "capacidad_camping": 80,
+    "cabanas": [
+      {"nombre": "Albergue Altzomoni", "capacidad": 30},
+      {"nombre": "Refugio de Montaña", "capacidad": 15}
+    ]
+  },
+  {
+    "nombre": "Parque Nacional Lagunas de Zempoala",
+    "direccion": "Carretera Federal Cuernavaca-Chalma, límite Morelos-Estado de México",
+    "servicios": ["baños", "estacionamiento", "asadores", "área de picnic", "senderos"],
+    "horario": "9:00 - 18:00",
+    "latitud": "19.029418",
+    "longitud": "-99.319938",
+    "tiene_cabanas": false,
+    "capacidad_camping": 40,
+    "cabanas": []
+  },
+  {
+    "nombre": "Parque Nacional Cofre de Perote",
+    "direccion": "Perote, Veracruz",
+    "servicios": ["baños", "estacionamiento", "senderos", "mirador", "guardabosques"],
+    "horario": "9:00 - 17:00",
+    "latitud": "19.498509",
+    "longitud": "-97.157710",
+    "tiene_cabanas": true,
+    "capacidad_camping": 60,
+    "cabanas": [
+      {"nombre": "Cabaña Conejos", "capacidad": 6},
+      {"nombre": "Cabaña Los Pescados", "capacidad": 4}
+    ]
+  },
+  {
+    "nombre": "Parque Nacional Pico de Orizaba (Citlaltépetl)",
+    "direccion": "Tlachichuca, frontera Puebla-Veracruz",
+    "servicios": ["baños", "estacionamiento", "senderos", "guardabosques", "albergue"],
+    "horario": "9:00 - 18:00",
+    "latitud": "19.044877",
+    "longitud": "-97.280415",
+    "tiene_cabanas": true,
+    "capacidad_camping": 70,
+    "cabanas": [
+      {"nombre": "Refugio Piedra Grande", "capacidad": 60},
+      {"nombre": "Refugio Octavio Álvarez", "capacidad": 12}
+    ]
+  },
+  {
+    "nombre": "Parque Nacional Nevado de Toluca (Xinantécatl)",
+    "direccion": "Volcán Nevado de Toluca, Estado de México",
+    "servicios": ["baños", "estacionamiento", "senderos", "mirador", "guardabosques"],
+    "horario": "6:00 - 18:00",
+    "latitud": "19.108565",
+    "longitud": "-99.754769",
+    "tiene_cabanas": true,
+    "capacidad_camping": 90,
+    "cabanas": [
+      {"nombre": "Albergue Los Venados", "capacidad": 25},
+      {"nombre": "Posada Familiar", "capacidad": 8}
+    ]
+  },
+  {
+    "nombre": "Parque Nacional La Malinche (Matlalcuéyatl)",
+    "direccion": "Centro Vacacional IMSS Malintzi, Tlaxcala",
+    "servicios": ["baños", "estacionamiento", "asadores", "senderos", "área de picnic", "restaurante"],
+    "horario": "7:00 - 19:00",
+    "latitud": "19.244127",
+    "longitud": "-98.097575",
+    "tiene_cabanas": true,
+    "capacidad_camping": 150,
+    "cabanas": [
+      {"nombre": "Cabaña Centro Vacacional 1", "capacidad": 6},
+      {"nombre": "Cabaña Centro Vacacional 2", "capacidad": 8},
+      {"nombre": "Cabaña Familiar Malintzi", "capacidad": 10}
+    ]
+  }
+]
