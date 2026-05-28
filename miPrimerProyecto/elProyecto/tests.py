@@ -73,8 +73,6 @@ class GestorReservacionesTests(TestCase):
         self.cabana = crear_cabana(self.parque, capacidad=4)
         self.cliente = crear_cliente()
 
-    # Pruebas de verificación de periodo 
-
     def test_periodo_festival_junio_valido(self):
         """Fechas dentro de junio no deben lanzar excepción."""
         GestorReservaciones.verificar_periodo_festival(INICIO_VALIDO, FIN_VALIDO)
@@ -98,8 +96,6 @@ class GestorReservacionesTests(TestCase):
         with self.assertRaises(ValueError):
             GestorReservaciones.verificar_periodo_festival(date(2026, 5, 30), date(2026, 6, 5))
 
-    # Verificar dias de mantenimiento
-
     def test_mantenimiento_rango_sin_martes(self):
         """Rango mié-vie: no se incluye ningun martes"""
         GestorReservaciones.verificar_dia_mantenimiento(INICIO_VALIDO, FIN_VALIDO)
@@ -117,8 +113,6 @@ class GestorReservacionesTests(TestCase):
     def test_mantenimiento_dia_unico_no_martes(self):
         """Un solo día que no es martes (miércoles 3 jun) debe pasar."""
         GestorReservaciones.verificar_dia_mantenimiento(INICIO_VALIDO, INICIO_VALIDO)
-
-    # Validar disponibilidad de las cabañas
 
     def test_disponibilidad_cabana_libre(self):
         """Una cabaña sin reservar debe estar disponible."""
@@ -184,10 +178,6 @@ class GestorReservacionesTests(TestCase):
                 self.cabana, INICIO_VALIDO, FIN_VALIDO, 99
             )
 
-    # -----------------------------------------------------------------------
-    # verificar_disponibilidad_camping
-    # -----------------------------------------------------------------------
-
     def test_disponibilidad_camping_con_espacio(self):
         """Parque con capacidad suficiente debe aceptar la reservación."""
         GestorReservaciones.verificar_disponibilidad_camping(
@@ -224,8 +214,6 @@ class GestorReservacionesTests(TestCase):
         GestorReservaciones.verificar_disponibilidad_camping(
             self.parque, INICIO_VALIDO, FIN_VALIDO, 9
         )
-
-    # Se crear una reservación.
 
     def test_crear_reservacion_cabana_exitosa(self):
         """Flujo de creación de una reservación a una cabaña"""
@@ -372,3 +360,46 @@ class PasswordResetTokenTests(TestCase):
         token_obj.expira = timezone.now() - timedelta(minutes=1)
         token_obj.save()
         self.assertFalse(token_obj.es_valido())
+
+# Pruebas para la verificación de disponibilidad de cabañas.
+
+class CabanaDisponibilidadTests(TestCase):
+    """
+    Este método es la primera línea de verificación de disponibilidad;
+    GestorReservaciones lo complementa con select_for_update().
+    """
+
+    def setUp(self):
+        self.parque  = crear_parque()
+        self.cabana  = crear_cabana(self.parque)
+        self.cliente = crear_cliente()
+
+    def _reservar(self, inicio, fin, estado=EstadoReservacion.ACTIVA):
+        """Crea una reservación de cabaña directamente en la base de datos."""
+        return Reservacion.objects.create(
+            cliente=self.cliente,
+            parque=self.parque,
+            cabana=self.cabana,
+            fecha_inicio=inicio,
+            fecha_termino=fin,
+            numero_personas=2,
+            tipo_visita=TipoVisita.CABANA,
+            estado=estado,
+        )
+
+    def test_cabana_disponible_sin_reservaciones(self):
+        self.assertTrue(self.cabana.esta_disponible(INICIO_VALIDO, FIN_VALIDO))
+
+    def test_cabana_no_disponible_con_reservacion_solapada(self):
+        self._reservar(INICIO_VALIDO, FIN_VALIDO)
+        self.assertFalse(self.cabana.esta_disponible(INICIO_VALIDO, FIN_VALIDO))
+
+    def test_cabana_disponible_reservacion_cancelada(self):
+        """Una reservación cancelada no debe bloquear la cabaña."""
+        self._reservar(INICIO_VALIDO, FIN_VALIDO, estado=EstadoReservacion.CANCELADA)
+        self.assertTrue(self.cabana.esta_disponible(INICIO_VALIDO, FIN_VALIDO))
+
+    def test_cabana_disponible_fechas_adyacentes(self):
+        """Inicio de nueva reservación igual al fin de la existente no es solape."""
+        self._reservar(INICIO_VALIDO, FIN_VALIDO)
+        self.assertTrue(self.cabana.esta_disponible(FIN_VALIDO, FIN_ADYACENTE))
