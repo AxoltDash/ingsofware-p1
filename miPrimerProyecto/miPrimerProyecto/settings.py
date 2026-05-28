@@ -11,8 +11,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-from pathlib import Path
-from decouple import config
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -138,14 +136,9 @@ BASE_URL = env('BASE_URL', default='http://127.0.0.1:8000')
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE":   "django.db.backends.mysql",
-        "NAME":     config("DB_NAME"),
-        "USER":     config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST":     config("DB_HOST", default="localhost"),
-        "PORT":     config("DB_PORT", default="3306"),
-        "OPTIONS":  {"charset": "utf8mb4"},
+    'default': {
+        'ENGINE': env("DATABASE_ENGINE"),
+        'NAME': BASE_DIR / env("DATABASE_NAME"),
     }
 }
 
