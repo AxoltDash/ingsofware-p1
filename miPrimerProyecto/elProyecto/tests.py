@@ -1,3 +1,324 @@
-from django.test import TestCase
+from datetime import date, timedelta
+from django.core import mail
+from django.test import TestCase, Client, override_settings
+from django.urls import reverse
+from django.utils import timezone
+from parques.models import Cabana, Parque
+from reservaciones.models import EstadoReservacion, Reservacion, TipoVisita
+from reservaciones.services import GestorReservaciones
+from usuarios.models import Cliente as ClienteModel, PasswordResetToken
 
-# Create your tests here.
+# ---------------------------------------------------------------------------
+# Fechas de referencia
+# Restricciones del sistema que afectan los tests:
+#   1.- Solo se puede reservar de junio a agosto.
+#   2.- Ningún día del rango puede ser martes.
+#
+# Calendario junio 2026:
+#   Lu Ma Mi Ju Vi
+#    1  2  3  4  5  martes = 2, 9, 16, 23, 30
+#    8  9 10 11 12
+# ---------------------------------------------------------------------------
+INICIO_VALIDO     = date(2026, 6, 3)
+FIN_VALIDO        = date(2026, 6, 5)
+INICIO_CON_MARTES = date(2026, 6, 1)
+FIN_CON_MARTES    = date(2026, 6, 3)
+MARTES_SOLO       = date(2026, 6, 2)
+INICIO_ADYACENTE  = date(2026, 6, 5)
+FIN_ADYACENTE     = date(2026, 6, 7)
+INICIO_INVALIDO   = date(2026, 5, 3)
+FIN_INVALIDO      = date(2026, 5, 5)
+
+
+# Funciones auxiliares
+def crear_parque(capacidad_camping=10, tiene_cabanas=True):
+    """Crea un Parque de prueba con valores razonables."""
+    return Parque.objects.create(
+        nombre='Parque Test',
+        direccion='Calle Falsa 123',
+        horario='08:00-18:00',
+        latitud='19.432608',
+        longitud='-99.133209',
+        tiene_cabanas=tiene_cabanas,
+        capacidad_camping=capacidad_camping,
+        activo=True,
+    )
+
+
+def crear_cabana(parque, capacidad=4):
+    """Crea una Cabaña activa dentro del parque dado."""
+    return Cabana.objects.create(
+        parque=parque,
+        nombre='Cabaña 1',
+        capacidad=capacidad,
+        activo=True,
+    )
+
+
+def crear_cliente(email='cliente@test.com', password='TestPass123!'):
+    """Crea un Cliente (subclase de Usuario) listo para usar en vistas."""
+    return ClienteModel.objects.create_user(email=email, password=password)
+
+
+# Pruebas del gestor de reservaciones
+
+class GestorReservacionesTests(TestCase):
+    """
+    Se prueba cada función por separado y luego se hace una prueba 
+    de transacción.
+    """
+
+    def setUp(self):
+        self.parque = crear_parque(capacidad_camping=10)
+        self.cabana = crear_cabana(self.parque, capacidad=4)
+        self.cliente = crear_cliente()
+
+    # Pruebas de verificación de periodo 
+
+    def test_periodo_festival_junio_valido(self):
+        """Fechas dentro de junio no deben lanzar excepción."""
+        GestorReservaciones.verificar_periodo_festival(INICIO_VALIDO, FIN_VALIDO)
+
+    def test_periodo_festival_agosto_valido(self):
+        """Todo agosto es válido."""
+        GestorReservaciones.verificar_periodo_festival(date(2026, 8, 1), date(2026, 8, 10))
+
+    def test_periodo_festival_mayo_invalido(self):
+        """Mayo está fuera del periodo debe lanzar ValueError."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_periodo_festival(INICIO_INVALIDO, FIN_INVALIDO)
+
+    def test_periodo_festival_septiembre_invalido(self):
+        """Septiembre está fuera del periodo debe lanzar ValueError."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_periodo_festival(date(2026, 9, 1), date(2026, 9, 5))
+
+    def test_periodo_festival_inicio_invalido_fin_valido(self):
+        """Si solo fecha_inicio está fuera del periodo, igual debe fallar."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_periodo_festival(date(2026, 5, 30), date(2026, 6, 5))
+
+    # Verificar dias de mantenimiento
+
+    def test_mantenimiento_rango_sin_martes(self):
+        """Rango mié-vie: no se incluye ningun martes"""
+        GestorReservaciones.verificar_dia_mantenimiento(INICIO_VALIDO, FIN_VALIDO)
+
+    def test_mantenimiento_rango_incluye_martes(self):
+        """Rango lun-mié: contiene martes 2 jun debe lanzar ValueError."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_dia_mantenimiento(INICIO_CON_MARTES, FIN_CON_MARTES)
+
+    def test_mantenimiento_dia_unico_martes(self):
+        """Un solo día que es martes es inválido."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_dia_mantenimiento(MARTES_SOLO, MARTES_SOLO)
+
+    def test_mantenimiento_dia_unico_no_martes(self):
+        """Un solo día que no es martes (miércoles 3 jun) debe pasar."""
+        GestorReservaciones.verificar_dia_mantenimiento(INICIO_VALIDO, INICIO_VALIDO)
+
+    # Validar disponibilidad de las cabañas
+
+    def test_disponibilidad_cabana_libre(self):
+        """Una cabaña sin reservar debe estar disponible."""
+        GestorReservaciones.verificar_disponibilidad_cabana(
+            self.cabana, INICIO_VALIDO, FIN_VALIDO, 2
+        )
+
+    def test_disponibilidad_cabana_ocupada_solapada(self):
+        """El reservar una cabaña ya apartada es una acción inválida."""
+        Reservacion.objects.create(
+            cliente=self.cliente,
+            parque=self.parque,
+            cabana=self.cabana,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=2,
+            tipo_visita=TipoVisita.CABANA,
+            estado=EstadoReservacion.ACTIVA,
+        )
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_disponibilidad_cabana(
+                self.cabana, INICIO_VALIDO, FIN_VALIDO, 2
+            )
+
+    def test_disponibilidad_cabana_cancelada_no_bloquea(self):
+        """El cancelar una reservación implica que la cabaña este disponible de nuevo"""
+        Reservacion.objects.create(
+            cliente=self.cliente,
+            parque=self.parque,
+            cabana=self.cabana,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=2,
+            tipo_visita=TipoVisita.CABANA,
+            estado=EstadoReservacion.CANCELADA,
+        )
+        GestorReservaciones.verificar_disponibilidad_cabana(
+            self.cabana, INICIO_VALIDO, FIN_VALIDO, 2
+        )
+
+    def test_disponibilidad_cabana_fechas_adyacentes_no_solapan(self):
+        """
+        Reservación que termina el día que empieza la nueva es una acción válida.
+        """
+        Reservacion.objects.create(
+            cliente=self.cliente,
+            parque=self.parque,
+            cabana=self.cabana,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=2,
+            tipo_visita=TipoVisita.CABANA,
+            estado=EstadoReservacion.ACTIVA,
+        )
+        GestorReservaciones.verificar_disponibilidad_cabana(
+            self.cabana, INICIO_ADYACENTE, FIN_ADYACENTE, 2
+        )
+
+    def test_disponibilidad_cabana_excede_capacidad(self):
+        """Número de personas mayor que capacidad debe lanzar ValueError."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_disponibilidad_cabana(
+                self.cabana, INICIO_VALIDO, FIN_VALIDO, 99
+            )
+
+    # -----------------------------------------------------------------------
+    # verificar_disponibilidad_camping
+    # -----------------------------------------------------------------------
+
+    def test_disponibilidad_camping_con_espacio(self):
+        """Parque con capacidad suficiente debe aceptar la reservación."""
+        GestorReservaciones.verificar_disponibilidad_camping(
+            self.parque, INICIO_VALIDO, FIN_VALIDO, 5
+        )
+
+    def test_disponibilidad_camping_sin_espacio(self):
+        """La capacidad del camping nunca debe ser superada."""
+        Reservacion.objects.create(
+            cliente=self.cliente,
+            parque=self.parque,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=8,
+            tipo_visita=TipoVisita.CAMPING,
+            estado=EstadoReservacion.ACTIVA,
+        )
+        with self.assertRaises(ValueError):
+            GestorReservaciones.verificar_disponibilidad_camping(
+                self.parque, INICIO_VALIDO, FIN_VALIDO, 5
+            )
+
+    def test_disponibilidad_camping_cancelada_no_cuenta(self):
+        """Las reservaciones canceladas no se suman a la ocupación."""
+        Reservacion.objects.create(
+            cliente=self.cliente,
+            parque=self.parque,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=9,
+            tipo_visita=TipoVisita.CAMPING,
+            estado=EstadoReservacion.CANCELADA,
+        )
+        GestorReservaciones.verificar_disponibilidad_camping(
+            self.parque, INICIO_VALIDO, FIN_VALIDO, 9
+        )
+
+    # Se crear una reservación.
+
+    def test_crear_reservacion_cabana_exitosa(self):
+        """Flujo de creación de una reservación a una cabaña"""
+        reservacion = GestorReservaciones.crear_reservacion(
+            cliente=self.cliente,
+            parque=self.parque,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=2,
+            tipo_visita=TipoVisita.CABANA,
+            cabana=self.cabana,
+        )
+        self.assertIsNotNone(reservacion.pk)
+        self.assertEqual(reservacion.estado, EstadoReservacion.ACTIVA)
+
+    def test_crear_reservacion_camping_exitosa(self):
+        """Flujo de creación de una reservación de camping"""
+        reservacion = GestorReservaciones.crear_reservacion(
+            cliente=self.cliente,
+            parque=self.parque,
+            fecha_inicio=INICIO_VALIDO,
+            fecha_termino=FIN_VALIDO,
+            numero_personas=3,
+            tipo_visita=TipoVisita.CAMPING,
+            cabana=None,
+        )
+        self.assertIsNone(reservacion.cabana)
+        self.assertEqual(reservacion.tipo_visita, TipoVisita.CAMPING)
+
+    def test_crear_reservacion_cabana_sin_especificar_cabana(self):
+        """La cabaña a reservar debe exisitr."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.crear_reservacion(
+                cliente=self.cliente,
+                parque=self.parque,
+                fecha_inicio=INICIO_VALIDO,
+                fecha_termino=FIN_VALIDO,
+                numero_personas=2,
+                tipo_visita=TipoVisita.CABANA,
+                cabana=None,
+            )
+
+    def test_crear_reservacion_camping_con_cabana(self):
+        """Un camping no debe especificar una cabaña"""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.crear_reservacion(
+                cliente=self.cliente,
+                parque=self.parque,
+                fecha_inicio=INICIO_VALIDO,
+                fecha_termino=FIN_VALIDO,
+                numero_personas=2,
+                tipo_visita=TipoVisita.CAMPING,
+                cabana=self.cabana,
+            )
+
+    def test_crear_reservacion_cabana_de_otro_parque(self):
+        """Cabaña que no pertenece al parque indicado debe lanzar ValueError."""
+        otro_parque = crear_parque()
+        cabana_ajena = Cabana.objects.create(
+            parque=otro_parque, nombre='Cabaña X', capacidad=4, activo=True
+        )
+        with self.assertRaises(ValueError):
+            GestorReservaciones.crear_reservacion(
+                cliente=self.cliente,
+                parque=self.parque,     
+                fecha_inicio=INICIO_VALIDO,
+                fecha_termino=FIN_VALIDO,
+                numero_personas=2,
+                tipo_visita=TipoVisita.CABANA,
+                cabana=cabana_ajena,  
+            )
+
+    def test_crear_reservacion_rechaza_mes_invalido(self):
+        """crear_reservacion debe propagar el ValueError de verificar_periodo_festival."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.crear_reservacion(
+                cliente=self.cliente,
+                parque=self.parque,
+                fecha_inicio=INICIO_INVALIDO,
+                fecha_termino=FIN_INVALIDO,
+                numero_personas=2,
+                tipo_visita=TipoVisita.CAMPING,
+            )
+
+    def test_crear_reservacion_rechaza_martes(self):
+        """crear_reservacion debe propagar el ValueError de verificar_dia_mantenimiento."""
+        with self.assertRaises(ValueError):
+            GestorReservaciones.crear_reservacion(
+                cliente=self.cliente,
+                parque=self.parque,
+                fecha_inicio=INICIO_CON_MARTES,
+                fecha_termino=FIN_CON_MARTES,
+                numero_personas=2,
+                tipo_visita=TipoVisita.CAMPING,
+            )
+
