@@ -403,3 +403,189 @@ class CabanaDisponibilidadTests(TestCase):
         """Inicio de nueva reservación igual al fin de la existente no es solape."""
         self._reservar(INICIO_VALIDO, FIN_VALIDO)
         self.assertTrue(self.cabana.esta_disponible(FIN_VALIDO, FIN_ADYACENTE))
+
+
+# Pruebas de vistas de autenticación.
+
+class VistasRegistroTests(TestCase):
+    """Pruebas para la vista registro."""
+
+    def test_get_devuelve_200(self):
+        response = self.client.get(reverse('registro'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_usa_plantilla_registro(self):
+        response = self.client.get(reverse('registro'))
+        self.assertTemplateUsed(response, 'usuarios/registro.html')
+
+    def test_post_valido_crea_cliente_y_redirige(self):
+        """Registro exitoso debe crear el Cliente en BD e iniciar sesión."""
+        datos = {
+            'email':      'nuevo@test.com',
+            'first_name': 'Ana',
+            'last_name':  'García',
+            'password1':  'TestPass123!',
+            'password2':  'TestPass123!',
+        }
+        response = self.client.post(reverse('registro'), datos)
+        self.assertRedirects(response, reverse('home'))
+        self.assertTrue(ClienteModel.objects.filter(email='nuevo@test.com').exists())
+
+    def test_post_email_duplicado_muestra_error(self):
+        """No se puede registrar el mismo email dos veces."""
+        crear_cliente('duplicado@test.com')
+        datos = {
+            'email':      'duplicado@test.com',
+            'first_name': 'Luis',
+            'last_name':  'Pérez',
+            'password1':  'TestPass123!',
+            'password2':  'TestPass123!',
+        }
+        response = self.client.post(reverse('registro'), datos)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_usuario_autenticado_redirige_sin_mostrar_formulario(self):
+        """Un usuario ya logueado que visita /registro/ debe ir a home."""
+        user = crear_cliente('ya@login.com')
+        self.client.force_login(user)
+        response = self.client.get(reverse('registro'))
+        self.assertRedirects(response, reverse('home'))
+
+
+class VistasSessionTests(TestCase):
+    """Pruebas para login, logout y protección de sesión."""
+
+    def setUp(self):
+        self.cliente = crear_cliente()
+
+    @override_settings(AXES_FAILURE_LIMIT=100)
+    def test_login_post_valido_redirige(self):
+        """Credenciales correctas deben autenticar y redirigir a home."""
+        response = self.client.post(reverse('login'), {
+            'username': 'cliente@test.com',
+            'password': '123!Pboart',
+        })
+        self.assertRedirects(response, reverse('home'))
+
+    @override_settings(AXES_FAILURE_LIMIT=100)
+    def test_login_post_valido_inicia_sesion(self):
+        """Después del login, el usuario debe estar autenticado."""
+        self.client.post(reverse('login'), {
+            'username': 'cliente@test.com',
+            'password': '123!Pboart',
+        })
+        self.assertTrue(self.client.session.get('_auth_user_id'))
+
+    @override_settings(AXES_FAILURE_LIMIT=100)
+    def test_login_contrasenia_incorrecta_devuelve_200(self):
+        """Credenciales incorrectas no deben redirigir ni autenticar."""
+        response = self.client.post(reverse('login'), {
+            'username': 'cliente@test.com',
+            'password': 'Incorrecta999!',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.client.session.get('_auth_user_id'))
+
+    @override_settings(AXES_FAILURE_LIMIT=100)
+    def test_login_rota_session_key(self):
+        """
+        Tras el login debe generarse un nuevo ID de sesión. 
+        session.cycle_key() en la vista lo garantiza.
+        """
+        self.client.get(reverse('login'))
+        session_key_antes = self.client.session.session_key
+
+        self.client.post(reverse('login'), {
+            'username': 'cliente@test.com',
+            'password': '123!Pboart',
+        })
+        session_key_despues = self.client.session.session_key
+
+        self.assertNotEqual(session_key_antes, session_key_despues)
+
+    def test_logout_cierra_sesion(self):
+        """Después del logout el usuario no debe estar autenticado."""
+        self.client.force_login(self.cliente)
+        self.client.get(reverse('logout'))
+        response = self.client.get(reverse('home'))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_logout_redirige_a_login(self):
+        self.client.force_login(self.cliente)
+        response = self.client.get(reverse('logout'))
+        self.assertRedirects(response, reverse('login'))
+
+    def test_usuario_autenticado_no_ve_login(self):
+        """Un usuario ya logueado que visita /login/ debe ir a home."""
+        self.client.force_login(self.cliente)
+        response = self.client.get(reverse('login'))
+        self.assertRedirects(response, reverse('home'))
+
+
+class VistasRecuperacionTests(TestCase):
+    """
+    Pruebas para el flujo de recuperación de contraseña.
+    """
+
+    def setUp(self):
+        self.cliente = crear_cliente()
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_recuperacion_email_existente_envia_correo(self):
+        """Con un email registrado debe enviarse exactamente un correo."""
+        self.client.post(reverse('recuperar_contrasenia'), {'email': 'cliente@test.com'})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('cliente@test.com', mail.outbox[0].to)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_recuperacion_email_inexistente_no_envia_correo(self):
+        """
+        Con un email no registrado NO debe enviarse correo, pero la respuesta
+        debe ser idéntica (200 con enviado=True) para evitar enumeración de
+        usuarios (OWASP 2.3).
+        """
+        response = self.client.post(
+            reverse('recuperar_contrasenia'), {'email': 'noexiste@test.com'}
+        )
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['enviado'])
+
+    def test_restablecer_token_valido_devuelve_200(self):
+        """Un token fresco debe mostrar el formulario de nueva contraseña."""
+        token_obj = PasswordResetToken.crear_para(self.cliente)
+        url = reverse('restablecer_contrasenia', args=[token_obj.token])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['expirado'])
+
+    def test_restablecer_token_vencido_muestra_expirado(self):
+        """Token con fecha de expiración pasada debe marcar expirado=True."""
+        token_obj = PasswordResetToken.crear_para(self.cliente)
+        token_obj.expira = timezone.now() - timedelta(minutes=1)
+        token_obj.save()
+        url = reverse('restablecer_contrasenia', args=[token_obj.token])
+        response = self.client.get(url)
+        self.assertTrue(response.context['expirado'])
+
+    def test_restablecer_post_valido_cambia_contrasenia(self):
+        """POST con contraseñas válidas debe cambiar la contraseña y marcar el token como usado."""
+        token_obj = PasswordResetToken.crear_para(self.cliente)
+        url = reverse('restablecer_contrasenia', args=[token_obj.token])
+        response = self.client.post(url, {
+            'new_password1': 'NuevaPass456!',
+            'new_password2': 'NuevaPass456!',
+        })
+        self.assertRedirects(response, reverse('login'))
+        token_obj.refresh_from_db()
+        self.assertTrue(token_obj.usado)
+
+    def test_restablecer_token_ya_usado_muestra_expirado(self):
+        """Reutilizar un token ya consumido debe mostrar expirado=True."""
+        token_obj = PasswordResetToken.crear_para(self.cliente)
+        token_obj.usado = True
+        token_obj.save()
+        url = reverse('restablecer_contrasenia', args=[token_obj.token])
+        response = self.client.get(url)
+        self.assertTrue(response.context['expirado'])
