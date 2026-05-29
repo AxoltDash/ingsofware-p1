@@ -1,0 +1,120 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}Cabañas — {{ parque.nombre }} — CEPUAC Admin{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .admin-tabla { width:100%; border-collapse:collapse; font-size:.875rem; background:var(--blanco); border-radius:12px; overflow:hidden; box-shadow:var(--sombra-sm); }
+  .admin-tabla th { background:var(--bosque-oscuro); color:var(--luc); padding:.75rem 1rem; text-align:left; font-weight:600; font-family:var(--font-titulo); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; }
+  .admin-tabla td { padding:.7rem 1rem; border-bottom:1px solid var(--borde-claro); color:var(--texto); vertical-align:middle; }
+  .admin-tabla tbody tr:hover td { background:var(--fondo-alt); }
+  .tabla-wrap { overflow-x:auto; border-radius:12px; }
+  .badge-si   { display:inline-block; padding:.2rem .6rem; border-radius:20px; font-size:.72rem; font-weight:600; background:var(--menta-suave); color:var(--bosque-medio); border:1px solid rgba(29,158,117,.3); }
+  .badge-no   { display:inline-block; padding:.2rem .6rem; border-radius:20px; font-size:.72rem; font-weight:600; background:#fff0f0; color:#c0392b; border:1px solid rgba(192,57,43,.3); }
+  .acciones { display:flex; gap:.4rem; flex-wrap:wrap; }
+  .btn-sm { font-size:.78rem; padding:.3rem .7rem; border-radius:6px; text-decoration:none; font-weight:600; cursor:pointer; border:none; display:inline-block; transition:all var(--t-rapida); }
+  .btn-editar  { background:var(--menta-suave); color:var(--bosque-medio); }
+  .btn-editar:hover { background:var(--menta-clara); }
+  .btn-desact  { background:#fff0f0; color:#c0392b; }
+  .btn-desact:hover { background:#fdd; }
+  .header-accion { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:.75rem; }
+  .btn-nuevo { background:linear-gradient(135deg,var(--luc) 0%,var(--luc-fuerte) 100%); color:var(--bosque-oscuro); padding:.55rem 1.2rem; border-radius:8px; font-weight:700; font-size:.875rem; text-decoration:none; box-shadow:0 4px 12px rgba(246,201,68,.35); transition:all var(--t-media); }
+  .btn-nuevo:hover { transform:translateY(-1px); }
+  .parque-info { background:var(--menta-suave); border:1px solid rgba(29,158,117,.2); border-radius:10px; padding:1rem 1.25rem; margin-bottom:1.5rem; font-size:.9rem; color:var(--texto); }
+  .parque-info strong { color:var(--bosque-oscuro); }
+  .capacidad-card { background:var(--blanco); border:1px solid var(--borde); border-radius:12px; padding:1.25rem; box-shadow:var(--sombra-sm); margin-top:2rem; }
+  .capacidad-card h4 { font-family:var(--font-titulo); font-size:1rem; color:var(--bosque-oscuro); margin-bottom:.75rem; }
+  .form-label { color:var(--texto); font-weight:500; font-size:.875rem; margin-bottom:.3rem; display:block; }
+  .form-control:focus { border-color:var(--bosque); box-shadow:0 0 0 .15rem rgba(29,158,117,.2); }
+  .btn-guardar-cap { background:var(--bosque); color:var(--blanco); border:none; padding:.5rem 1.2rem; border-radius:8px; font-weight:600; font-size:.875rem; cursor:pointer; transition:background var(--t-rapida); }
+  .btn-guardar-cap:hover { background:var(--bosque-medio); }
+  .cap-actual { color:var(--texto-suave); font-size:.85rem; margin-bottom:.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bienvenida">
+  <span class="badge">🏡 Cabañas</span>
+  <h2>{{ parque.nombre }}</h2>
+  <p>Gestiona las cabañas individuales y la capacidad de camping de este parque.</p>
+</section>
+
+<section class="seccion">
+  <div class="parque-info">
+    📍 <strong>{{ parque.direccion }}</strong> &nbsp;·&nbsp;
+    🕐 <strong>{{ parque.horario }}</strong> &nbsp;·&nbsp;
+    {% if parque.activo %}<span class="badge-si">Activo</span>{% else %}<span class="badge-no">Inactivo</span>{% endif %}
+  </div>
+
+  <div class="header-accion">
+    <h3 class="seccion-titulo" style="margin-bottom:0">Cabañas</h3>
+    {% if parque.activo %}
+    <a href="{% url 'crear_cabana' parque.id %}" class="btn-nuevo">+ Nueva cabaña</a>
+    {% endif %}
+  </div>
+
+  {% if cabanas %}
+  <div class="tabla-wrap">
+    <table class="admin-tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Capacidad</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cabanas %}
+        <tr>
+          <td><strong>{{ c.nombre }}</strong></td>
+          <td>{{ c.capacidad }} personas</td>
+          <td>{% if c.activo %}<span class="badge-si">Activa</span>{% else %}<span class="badge-no">Inactiva</span>{% endif %}</td>
+          <td>
+            <div class="acciones">
+              <a href="{% url 'editar_cabana' c.id %}" class="btn-sm btn-editar">Editar</a>
+              {% if c.activo %}
+              <form method="post" action="{% url 'desactivar_cabana' c.id %}" style="display:inline;"
+                    onsubmit="return confirm('¿Desactivar «{{ c.nombre }}»?');">
+                {% csrf_token %}
+                <button type="submit" class="btn-sm btn-desact">Desactivar</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center; padding:2rem; color:var(--texto-suave);">
+    <div style="font-size:2rem; margin-bottom:.5rem;">🏡</div>
+    <p>Este parque no tiene cabañas registradas.</p>
+  </div>
+  {% endif %}
+
+  <!-- Capacidad de camping -->
+  <div class="capacidad-card">
+    <h4>⛺ Capacidad de camping</h4>
+    <p class="cap-actual">Capacidad actual: <strong>{{ parque.capacidad_camping }} personas</strong></p>
+    <form method="post" action="{% url 'gestionar_disponibilidad' parque.id %}" novalidate>
+      {% csrf_token %}
+      <div style="display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap;">
+        <div>
+          <label class="form-label" for="{{ form_capacidad.capacidad_camping.id_for_label }}">
+            {{ form_capacidad.capacidad_camping.label }}
+          </label>
+          {{ form_capacidad.capacidad_camping }}
+        </div>
+        <button type="submit" class="btn-guardar-cap">Actualizar</button>
+      </div>
+    </form>
+  </div>
+
+  <p style="margin-top:1.5rem;">
+    <a href="{% url 'admin_parques' %}" style="color:var(--texto-suave); font-size:.875rem;">← Volver a parques</a>
+  </p>
+</section>
+{% endblock %}

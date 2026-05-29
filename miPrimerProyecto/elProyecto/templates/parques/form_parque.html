@@ -1,0 +1,86 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}{{ titulo }} — CEPUAC Admin{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .form-card { max-width: 640px; margin: 2rem auto; background: var(--blanco); border: 1px solid var(--borde); border-radius: 18px; padding: 2rem; box-shadow: var(--sombra-sm); }
+  .form-card h2 { font-family: var(--font-titulo); color: var(--bosque-oscuro); margin-bottom: 1.5rem; font-size: 1.4rem; }
+  .form-label { color: var(--texto); font-weight: 500; font-size: .875rem; margin-bottom: .3rem; }
+  .form-text { font-size: .78rem; color: var(--texto-suave); }
+  .form-control:focus, .form-select:focus { border-color: var(--bosque); box-shadow: 0 0 0 .15rem rgba(29,158,117,.2); }
+  .errorlist { list-style: none; padding: 0; color: #c0392b; font-size: .82rem; margin-top: .25rem; }
+  .non-field-error { background: #fff0f0; border: 1px solid rgba(192,57,43,.3); color: #c0392b; border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1rem; font-size: .875rem; }
+  .btn-guardar { background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%); color: var(--bosque-oscuro); border: none; padding: .65rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: .95rem; cursor: pointer; transition: all var(--t-media); box-shadow: 0 4px 12px rgba(246,201,68,.3); }
+  .btn-guardar:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(246,201,68,.5); }
+  .fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 500px) { .fila-2 { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="seccion">
+  <div class="form-card">
+    <h2>{{ titulo }}</h2>
+
+    {% if form.non_field_errors %}
+      <div class="non-field-error">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.nombre.label }}</label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}<ul class="errorlist">{% for e in form.nombre.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.direccion.label }}</label>
+        {{ form.direccion }}
+        {% if form.direccion.errors %}<ul class="errorlist">{% for e in form.direccion.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.servicios.label }}</label>
+        {{ form.servicios }}
+        <div class="form-text">{{ form.servicios.help_text }}</div>
+        {% if form.servicios.errors %}<ul class="errorlist">{% for e in form.servicios.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.horario.label }}</label>
+        {{ form.horario }}
+        {% if form.horario.errors %}<ul class="errorlist">{% for e in form.horario.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="fila-2 mb-3">
+        <div>
+          <label class="form-label">{{ form.latitud.label }}</label>
+          {{ form.latitud }}
+          {% if form.latitud.errors %}<ul class="errorlist">{% for e in form.latitud.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">{{ form.longitud.label }}</label>
+          {{ form.longitud }}
+          {% if form.longitud.errors %}<ul class="errorlist">{% for e in form.longitud.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">{{ form.capacidad_camping.label }}</label>
+        {{ form.capacidad_camping }}
+        <div class="form-text">Personas máximas acumuladas en la zona de camping.</div>
+        {% if form.capacidad_camping.errors %}<ul class="errorlist">{% for e in form.capacidad_camping.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <button type="submit" class="btn-guardar">Guardar parque</button>
+        <a href="{% url 'admin_parques' %}" style="color:var(--texto-suave); font-size:.875rem;">← Cancelar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

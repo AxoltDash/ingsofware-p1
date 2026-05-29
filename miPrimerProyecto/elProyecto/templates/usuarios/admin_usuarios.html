@@ -1,0 +1,114 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}Gestión de usuarios — CEPUAC Admin{% endblock %}
+
+{% block styles %}
+<style>
+  .admin-tabla { width:100%; border-collapse:collapse; font-size:.875rem; background:var(--blanco); border-radius:12px; overflow:hidden; box-shadow:var(--sombra-sm); }
+  .admin-tabla th { background:var(--bosque-oscuro); color:var(--luc); padding:.75rem 1rem; text-align:left; font-weight:600; font-family:var(--font-titulo); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; }
+  .admin-tabla td { padding:.7rem 1rem; border-bottom:1px solid var(--borde-claro); color:var(--texto); vertical-align:middle; }
+  .admin-tabla tbody tr:hover td { background:var(--fondo-alt); }
+  .tabla-wrap { overflow-x:auto; border-radius:12px; }
+  .badge-activo   { display:inline-block; padding:.2rem .6rem; border-radius:20px; font-size:.72rem; font-weight:600; background:var(--menta-suave); color:var(--bosque-medio); border:1px solid rgba(29,158,117,.3); }
+  .badge-inactivo { display:inline-block; padding:.2rem .6rem; border-radius:20px; font-size:.72rem; font-weight:600; background:#fff0f0; color:#c0392b; border:1px solid rgba(192,57,43,.3); }
+  .btn-sm { font-size:.78rem; padding:.3rem .7rem; border-radius:6px; text-decoration:none; font-weight:600; cursor:pointer; border:none; display:inline-block; transition:all var(--t-rapida); }
+  .btn-desact  { background:#fff0f0; color:#c0392b; }
+  .btn-desact:hover { background:#fdd; }
+  .seccion-subtitulo { font-family:var(--font-titulo); font-size:1.1rem; color:var(--bosque-oscuro); margin:1.5rem 0 .75rem; }
+  .contador { font-size:.875rem; color:var(--texto-suave); margin-bottom:.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bienvenida">
+  <span class="badge">👤 Panel administrador</span>
+  <h2>Gestión de <span class="acento">usuarios</span></h2>
+  <p>Consulta y administra los clientes y administradores del sistema.</p>
+</section>
+
+<section class="seccion">
+
+  <!-- Clientes -->
+  <h3 class="seccion-subtitulo">Clientes</h3>
+  <p class="contador">{{ clientes|length }} cliente{{ clientes|length|pluralize:"s" }} registrado{{ clientes|length|pluralize:"s" }}</p>
+  {% if clientes %}
+  <div class="tabla-wrap" style="margin-bottom:2.5rem;">
+    <table class="admin-tabla">
+      <thead>
+        <tr>
+          <th>Correo</th>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in clientes %}
+        <tr>
+          <td>{{ u.email }}</td>
+          <td>{{ u.get_full_name|default:"—" }}</td>
+          <td>{% if u.is_active %}<span class="badge-activo">Activo</span>{% else %}<span class="badge-inactivo">Inactivo</span>{% endif %}</td>
+          <td>
+            {% if u.is_active %}
+            <form method="post" action="{% url 'desactivar_usuario' u.id %}" style="display:inline;"
+                  onsubmit="return confirm('¿Desactivar la cuenta de {{ u.email }}?');">
+              {% csrf_token %}
+              <button type="submit" class="btn-sm btn-desact">Desactivar</button>
+            </form>
+            {% else %}
+            <span style="color:var(--texto-suave); font-size:.8rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--texto-suave); margin-bottom:2rem;">No hay clientes registrados.</p>
+  {% endif %}
+
+  <!-- Administradores -->
+  <h3 class="seccion-subtitulo">Administradores</h3>
+  <p class="contador">{{ admins|length }} administrador{{ admins|length|pluralize:"es" }}</p>
+  {% if admins %}
+  <div class="tabla-wrap">
+    <table class="admin-tabla">
+      <thead>
+        <tr>
+          <th>Correo</th>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in admins %}
+        <tr>
+          <td>{{ u.email }}</td>
+          <td>{{ u.get_full_name|default:"—" }}</td>
+          <td>{% if u.is_active %}<span class="badge-activo">Activo</span>{% else %}<span class="badge-inactivo">Inactivo</span>{% endif %}</td>
+          <td>
+            {% if u.is_active and u.id != request.user.id %}
+            <form method="post" action="{% url 'desactivar_usuario' u.id %}" style="display:inline;"
+                  onsubmit="return confirm('¿Desactivar la cuenta de {{ u.email }}?');">
+              {% csrf_token %}
+              <button type="submit" class="btn-sm btn-desact">Desactivar</button>
+            </form>
+            {% elif u.id == request.user.id %}
+            <span style="color:var(--texto-suave); font-size:.8rem;">Tu cuenta</span>
+            {% else %}
+            <span style="color:var(--texto-suave); font-size:.8rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--texto-suave);">No hay administradores registrados.</p>
+  {% endif %}
+
+</section>
+{% endblock %}

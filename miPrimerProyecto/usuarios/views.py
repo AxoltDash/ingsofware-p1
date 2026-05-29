@@ -1,26 +1,28 @@
 import logging
 
+from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.shortcuts import get_object_or_404, redirect, render
 
 from reservaciones.services import ServicioCorreo
+from .decorators import requiere_admin
 from .forms import LoginForm, RecuperacionForm, RegistroClienteForm, RestablecerForm
-from .models import Cliente, PasswordResetToken
+from .models import Administrador, Cliente, PasswordResetToken, Usuario
 
 logger = logging.getLogger('cepuac')
+logger_admin = logging.getLogger('cepuac.admin')
 
 
 def registro(request):
     """CU-01: registro de nuevo cliente."""
     if request.user.is_authenticated:
-        return redirect('home')  # no mostrar registro a usuarios ya autenticados
+        return redirect('home')
 
     if request.method == 'POST':
         form = RegistroClienteForm(request.POST)
         if form.is_valid():
-            # [OWASP 2.3] create_user() aplica el hasher configurado (Argon2) automáticamente
             user = form.save()
-            user.backend = 'django.contrib.auth.backends.ModelBackend'  # requerido cuando hay múltiples backends
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
             login(request, user)
             logger.info(f"Nuevo cliente registrado id={user.id}")
             return redirect('home')
@@ -36,15 +38,12 @@ def iniciar_sesion(request):
         return redirect('home')
 
     if request.method == 'POST':
-        # LoginForm extiende AuthenticationForm; internamente llama a authenticate(request, ...)
-        # django-axes intercepta esa llamada y bloquea si superó AXES_FAILURE_LIMIT [OWASP 2.3]
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
             usuario = form.get_user()
             login(request, usuario)
-            request.session.cycle_key()  # [OWASP 2.4] nuevo ID de sesión tras login exitoso, previene session fixation
+            request.session.cycle_key()  # [OWASP 2.4] previene session fixation
             return redirect('home')
-        # [OWASP 2.3] AuthenticationForm muestra mensaje genérico sin indicar qué campo falló
     else:
         form = LoginForm(request)
 
@@ -53,8 +52,8 @@ def iniciar_sesion(request):
 
 def cerrar_sesion(request):
     """RF-01.3: logout que invalida completamente la sesión."""
-    request.session.flush()  # [OWASP 2.4] destruye la sesión entera (no solo desvincula al usuario)
-    logout(request)          # invalida el token de autenticación de Django
+    request.session.flush()  # [OWASP 2.4] destruye la sesión entera
+    logout(request)
     return redirect('login')
 
 
@@ -65,13 +64,11 @@ def solicitar_recuperacion(request):
         if form.is_valid():
             email = form.cleaned_data['email']
             usuario = Cliente.objects.filter(email=email).first()
-
             if usuario:
                 token_obj = PasswordResetToken.crear_para(usuario)
-                ServicioCorreo.enviar_recuperacion(usuario, token_obj.token)  # en dev imprime en terminal; en prod envía por SMTP
+                ServicioCorreo.enviar_recuperacion(usuario, token_obj.token)
                 logger.info(f"Recuperación solicitada usuario_id={usuario.id}")
-
-            # [OWASP 2.3] misma respuesta aunque el correo no exista — evita enumeración de usuarios
+            # [OWASP 2.3] misma respuesta aunque el correo no exista
             return render(request, 'usuarios/recuperar.html', {'form': form, 'enviado': True})
     else:
         form = RecuperacionForm()
@@ -84,14 +81,13 @@ def restablecer_contrasenia(request, token):
     token_obj = get_object_or_404(PasswordResetToken, token=token)
 
     if not token_obj.es_valido():
-        # token vencido o ya usado — mostrar mensaje sin revelar cuál fue el problema exacto
         return render(request, 'usuarios/restablecer.html', {'expirado': True})
 
     if request.method == 'POST':
         form = RestablecerForm(token_obj.usuario, request.POST)
         if form.is_valid():
-            form.save()               # guarda nueva contraseña con hash Argon2 [OWASP 2.3]
-            token_obj.usado = True    # invalida el token para que no pueda reutilizarse [OWASP 2.6]
+            form.save()
+            token_obj.usado = True
             token_obj.save()
             logger.info(f"Contraseña restablecida usuario_id={token_obj.usuario_id}")
             return redirect('login')
@@ -99,3 +95,32 @@ def restablecer_contrasenia(request, token):
         form = RestablecerForm(token_obj.usuario)
 
     return render(request, 'usuarios/restablecer.html', {'form': form, 'expirado': False})
+
+
+# ── Panel de administrador — usuarios ─────────────────────────────────────────
+
+@requiere_admin
+def admin_usuarios(request):
+    """HU-22: lista de clientes y administradores del sistema."""
+    clientes = Cliente.objects.all().order_by('-is_active', 'email')
+    admins = Administrador.objects.all().order_by('-is_active', 'email')
+    return render(request, 'usuarios/admin_usuarios.html', {
+        'clientes': clientes,
+        'admins': admins,
+    })
+
+
+@requiere_admin
+def desactivar_usuario(request, usuario_id):
+    """HU-23: soft delete de usuario. No puede desactivarse a sí mismo. [OWASP 2.5, 2.7]"""
+    if request.method != 'POST':
+        return redirect('admin_usuarios')
+    if usuario_id == request.user.id:
+        messages.error(request, 'No puedes desactivar tu propia cuenta.')
+        return redirect('admin_usuarios')
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    usuario.is_active = False
+    usuario.save(update_fields=['is_active'])
+    logger_admin.warning(f"Usuario desactivado id={usuario_id} admin_id={request.user.id}")
+    messages.success(request, f'Usuario {usuario.email} desactivado.')
+    return redirect('admin_usuarios')

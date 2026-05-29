@@ -1,0 +1,88 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}Gestión de parques — CEPUAC Admin{% endblock %}
+
+{% block styles %}
+<style>
+  .admin-tabla { width: 100%; border-collapse: collapse; font-size: .875rem; background: var(--blanco); border-radius: 12px; overflow: hidden; box-shadow: var(--sombra-sm); }
+  .admin-tabla th { background: var(--bosque-oscuro); color: var(--luc); padding: .75rem 1rem; text-align: left; font-weight: 600; font-family: var(--font-titulo); font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; }
+  .admin-tabla td { padding: .7rem 1rem; border-bottom: 1px solid var(--borde-claro); color: var(--texto); vertical-align: middle; }
+  .admin-tabla tbody tr:hover td { background: var(--fondo-alt); }
+  .tabla-wrap { overflow-x: auto; border-radius: 12px; }
+  .badge-si   { display:inline-block; padding:.2rem .6rem; border-radius:20px; font-size:.72rem; font-weight:600; background:var(--menta-suave); color:var(--bosque-medio); border:1px solid rgba(29,158,117,.3); }
+  .badge-no   { display:inline-block; padding:.2rem .6rem; border-radius:20px; font-size:.72rem; font-weight:600; background:var(--fondo-alt); color:var(--texto-suave); border:1px solid var(--borde); }
+  .badge-inactivo { background:#fff0f0; color:#c0392b; border:1px solid rgba(192,57,43,.3); }
+  .acciones { display:flex; gap:.4rem; flex-wrap:wrap; }
+  .btn-sm { font-size:.78rem; padding:.3rem .7rem; border-radius:6px; text-decoration:none; font-weight:600; cursor:pointer; border:none; display:inline-block; transition:all var(--t-rapida); }
+  .btn-editar   { background:var(--menta-suave); color:var(--bosque-medio); }
+  .btn-editar:hover { background:var(--menta-clara); }
+  .btn-cabanas  { background:var(--luc-suave); color:#7a5800; }
+  .btn-cabanas:hover { background:#ffe7a0; }
+  .btn-desact   { background:#fff0f0; color:#c0392b; }
+  .btn-desact:hover { background:#fdd; }
+  .header-accion { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:.75rem; }
+  .btn-nuevo { background:linear-gradient(135deg,var(--luc) 0%,var(--luc-fuerte) 100%); color:var(--bosque-oscuro); padding:.55rem 1.2rem; border-radius:8px; font-weight:700; font-size:.875rem; text-decoration:none; box-shadow:0 4px 12px rgba(246,201,68,.35); transition:all var(--t-media); }
+  .btn-nuevo:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(246,201,68,.5); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bienvenida">
+  <span class="badge">🔒 Panel administrador</span>
+  <h2>Gestión de <span class="acento">parques</span></h2>
+  <p>Administra los parques del festival, sus cabañas y capacidad de camping.</p>
+</section>
+
+<section class="seccion">
+  <div class="header-accion">
+    <h3 class="seccion-titulo" style="margin-bottom:0">Parques registrados</h3>
+    <a href="{% url 'crear_parque' %}" class="btn-nuevo">+ Nuevo parque</a>
+  </div>
+
+  {% if parques %}
+  <div class="tabla-wrap">
+    <table class="admin-tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Dirección</th>
+          <th>Cabañas</th>
+          <th>Cap. camping</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in parques %}
+        <tr>
+          <td><strong>{{ p.nombre }}</strong></td>
+          <td>{{ p.direccion }}</td>
+          <td>{% if p.tiene_cabanas %}<span class="badge-si">Sí</span>{% else %}<span class="badge-no">No</span>{% endif %}</td>
+          <td>{{ p.capacidad_camping }} personas</td>
+          <td>{% if p.activo %}<span class="badge-si">Activo</span>{% else %}<span class="badge-no badge-inactivo">Inactivo</span>{% endif %}</td>
+          <td>
+            <div class="acciones">
+              <a href="{% url 'editar_parque' p.id %}" class="btn-sm btn-editar">Editar</a>
+              <a href="{% url 'admin_cabanas' p.id %}" class="btn-sm btn-cabanas">Cabañas</a>
+              {% if p.activo %}
+              <form method="post" action="{% url 'eliminar_parque' p.id %}" style="display:inline;" onsubmit="return confirm('¿Desactivar el parque «{{ p.nombre }}»? Las reservaciones activas no se verán afectadas.');">
+                {% csrf_token %}
+                <button type="submit" class="btn-sm btn-desact">Desactivar</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center; padding:3rem; color:var(--texto-suave);">
+    <div style="font-size:2.5rem; margin-bottom:.75rem;">🌲</div>
+    <p>No hay parques registrados aún.</p>
+    <a href="{% url 'crear_parque' %}" class="btn-nuevo" style="display:inline-block; margin-top:1rem;">+ Crear el primer parque</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

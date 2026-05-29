@@ -35,7 +35,9 @@
       <a href="{% url 'mis_reservaciones' %}">Mis reservaciones</a>
     {% endif %}
     {% if user.administrador %}
-      <a href="{% url 'todas_reservaciones' %}">Todas las reservaciones</a>
+      <a href="{% url 'todas_reservaciones' %}">Reservaciones</a>
+      <a href="{% url 'admin_parques' %}">Parques</a>
+      <a href="{% url 'admin_usuarios' %}">Usuarios</a>
     {% endif %}
     <form action="{% url 'logout' %}" method="post" style="display:inline;">
       {% csrf_token %}

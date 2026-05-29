@@ -1,0 +1,49 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}{{ titulo }} — {{ parque.nombre }} — CEPUAC Admin{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .form-card { max-width: 480px; margin: 2rem auto; background: var(--blanco); border: 1px solid var(--borde); border-radius: 18px; padding: 2rem; box-shadow: var(--sombra-sm); }
+  .form-card h2 { font-family: var(--font-titulo); color: var(--bosque-oscuro); margin-bottom: .25rem; font-size: 1.3rem; }
+  .form-card .subtitulo { color: var(--texto-suave); font-size: .85rem; margin-bottom: 1.5rem; }
+  .form-label { color: var(--texto); font-weight: 500; font-size: .875rem; margin-bottom: .3rem; display: block; }
+  .form-control:focus { border-color: var(--bosque); box-shadow: 0 0 0 .15rem rgba(29,158,117,.2); }
+  .errorlist { list-style: none; padding: 0; color: #c0392b; font-size: .82rem; margin-top: .25rem; }
+  .btn-guardar { background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%); color: var(--bosque-oscuro); border: none; padding: .65rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: .95rem; cursor: pointer; transition: all var(--t-media); box-shadow: 0 4px 12px rgba(246,201,68,.3); }
+  .btn-guardar:hover { transform: translateY(-1px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="seccion">
+  <div class="form-card">
+    <h2>{{ titulo }}</h2>
+    <p class="subtitulo">🌲 {{ parque.nombre }}</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.nombre.label }}</label>
+        {{ form.nombre }}
+        <div style="color:var(--texto-suave); font-size:.78rem; margin-top:.25rem;">Ej: Cabaña 1, Suite Familiar, Cabaña del Lago</div>
+        {% if form.nombre.errors %}<ul class="errorlist">{% for e in form.nombre.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">{{ form.capacidad.label }}</label>
+        {{ form.capacidad }}
+        <div style="color:var(--texto-suave); font-size:.78rem; margin-top:.25rem;">Número máximo de personas para esta cabaña específica.</div>
+        {% if form.capacidad.errors %}<ul class="errorlist">{% for e in form.capacidad.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <button type="submit" class="btn-guardar">Guardar cabaña</button>
+        <a href="{% url 'admin_cabanas' parque.id %}" style="color:var(--texto-suave); font-size:.875rem;">← Cancelar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
