@@ -1,24 +1,135 @@
 {% extends "elProyecto/base.html" %}
 {% load static %}
 
-{% block title %}Inicio{% endblock %}
+{% block title %}Inicio — Festival Luciérnagas 2026{% endblock %}
 
-{% block header %}
-<h1>Bienvenido al tour de los conciertos a los que fui y a los que voy a ir</h1>
-<p>Disfrute del recorrido</p>
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
 {% endblock %}
 
 {% block content %}
-<h2>Mi primer concierto</h2>
-<p>Este es el primer concierto al que he ido.</p>
-{% endblock %}
 
-{% block img %}
-<imagen-centrada>
-    <img src="{% static 'images/Prueba0.jpeg' %}" alt="Imagen">
-</imagen-centrada>
-{% endblock %}
+<!-- HERO -->
+<section class="bienvenida">
+  <!-- Luciérnagas animadas (decorativas) -->
+  <div class="luciernagas" aria-hidden="true">
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+  </div>
 
-{% block scripts %}
-<script src="{% static 'main.js' %}"></script>
+  <span class="badge">✨ Temporada 2026 activa</span>
+  <h2>
+    Bienvenido{% if user.is_authenticated %}, {{ user.first_name }}{% endif %}<br>
+    a la <span class="acento">magia del bosque</span>
+  </h2>
+  <p>Cada año, entre junio y agosto, miles de luciérnagas iluminan los bosques de México en un espectáculo único en el mundo. Reserva tu lugar y vívelo.</p>
+  <div class="hero-acciones">
+    <a href="{% url 'bosques' %}" class="btn-verde">🌲 Ver bosques disponibles</a>
+    {% if not user.is_authenticated %}
+    <a href="{% url 'registro' %}" class="btn-borde">Crear cuenta</a>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ACCESO RÁPIDO (solo si no está autenticado) -->
+{% if not user.is_authenticated %}
+<section class="seccion">
+  <h3 class="seccion-titulo">Accede a tu cuenta</h3>
+  <div class="auth-grid">
+
+    <div class="auth-card-home">
+      <div class="info-icono">🔑</div>
+      <h4>¿Ya tienes cuenta?</h4>
+      <p>Inicia sesión para ver los bosques disponibles y gestionar tus reservaciones.</p>
+      <a href="{% url 'login' %}" class="btn-verde" style="margin-top:16px;">Iniciar sesión</a>
+    </div>
+
+    <div class="auth-card-home">
+      <div class="info-icono">🌱</div>
+      <h4>¿Primera vez aquí?</h4>
+      <p>Crea tu cuenta gratis y reserva tu lugar en el festival de las luciérnagas 2026.</p>
+      <a href="{% url 'registro' %}" class="btn-verde" style="margin-top:16px;">Crear cuenta</a>
+    </div>
+
+  </div>
+</section>
+{% endif %}
+
+<!-- QUÉ ES EL FESTIVAL -->
+<section class="seccion">
+  <h3 class="seccion-titulo">¿Qué es el festival?</h3>
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-icono">🌙</div>
+      <h4>Fenómeno natural único</h4>
+      <p>Las luciérnagas sincronizan sus destellos creando un espectáculo de luz natural que solo ocurre en ciertos bosques de México durante el verano.</p>
+    </div>
+    <div class="info-card">
+      <div class="info-icono">📅</div>
+      <h4>Temporada limitada</h4>
+      <p>El avistamiento solo es posible de junio a agosto. Las reservaciones son necesarias para controlar el acceso y proteger el ecosistema.</p>
+    </div>
+    <div class="info-card">
+      <div class="info-icono">🏕️</div>
+      <h4>Camping y cabañas</h4>
+      <p>Cada parque cuenta con zona de camping. Algunos ofrecen también cabañas para una experiencia más cómoda en el corazón del bosque.</p>
+    </div>
+    <div class="info-card">
+      <div class="info-icono">🌿</div>
+      <h4>Parques oficiales</h4>
+      <p>Solo los parques certificados participan en el festival, garantizando una experiencia segura y responsable con el medio ambiente.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO FUNCIONA -->
+<section class="seccion">
+  <h3 class="seccion-titulo">¿Cómo funciona?</h3>
+  <div class="pasos-grid">
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <h4>Crea tu cuenta</h4>
+      <p>Regístrate gratis en la plataforma para poder hacer reservaciones.</p>
+    </div>
+    <div class="paso-flecha">→</div>
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <h4>Elige tu bosque</h4>
+      <p>Explora los parques oficiales, sus servicios y disponibilidad.</p>
+    </div>
+    <div class="paso-flecha">→</div>
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <h4>Haz tu reservación</h4>
+      <p>Selecciona fechas, número de personas y tipo de estancia.</p>
+    </div>
+    <div class="paso-flecha">→</div>
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <h4>¡Disfruta!</h4>
+      <p>Recibe tu confirmación por correo y prepárate para la magia.</p>
+    </div>
+  </div>
+</section>
+
+<!-- LLAMADA A ACCIÓN FINAL -->
+<section class="seccion cta-final">
+  <div class="cta-final-contenido">
+    <h3>¿Listo para vivir la experiencia?</h3>
+    <p>Las reservaciones para la temporada 2026 ya están abiertas. Los lugares son limitados.</p>
+    <div class="hero-acciones">
+      {% if user.is_authenticated %}
+      <a href="{% url 'bosques' %}" class="btn-verde">🌲 Ver bosques y reservar</a>
+      {% else %}
+      <a href="{% url 'registro' %}" class="btn-verde">Crear cuenta gratis</a>
+      <a href="{% url 'login' %}" class="btn-borde">Iniciar sesión</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
 {% endblock %}

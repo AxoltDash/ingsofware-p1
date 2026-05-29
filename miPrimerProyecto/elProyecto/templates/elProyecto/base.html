@@ -1,61 +1,60 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Mi Sitio{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Festival Luciérnagas 2026{% endblock %}</title>
 
-    <link rel="stylesheet" href="{% static 'index.css' %}">
+  <!-- Google Fonts: Fraunces (títulos) + Plus Jakarta Sans (cuerpo) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+  {% block styles %}{% endblock %}
 </head>
-
 <body>
 
-<!-- HEADER -->
-<header>
-    {% block header %}
-    <h1>Mi sitio web</h1>
-    {% endblock %}
+<header class="site-header">
+  <div class="header-logo">
+    <span class="header-icono">✨</span>
+    <div>
+      <span class="header-titulo">Festival de las Luciérnagas</span>
+      <span class="header-sub">Edición 2026 · Junio – Agosto</span>
+    </div>
+  </div>
 </header>
 
-<!-- NAVBAR -->
 <nav class="navbar">
-    <a href="{% url 'home' %}">Primer concierto</a>
-    <a href="{% url 'creepyNuts' %}">Segundo concierto</a>
-    <a href="{% url 'siames' %}">Tercer concierto</a>
-
-    {% if user.is_authenticated %}
-
-        <form action="{% url 'logout' %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit">Cerrar sesión</button>
-        </form>
-
-    {% else %}
-        <a href="{% url 'login' %}">Iniciar sesión</a>
-        <a href="{% url 'registro' %}">Registrarse</a>
-    {% endif %}
-
+  <a href="{% url 'home' %}">Inicio</a>
+  <a href="{% url 'bosques' %}">Bosques</a>
+  {% if user.is_authenticated %}
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="navbar-btn">Cerrar sesión</button>
+    </form>
+  {% else %}
+    <a href="{% url 'login' %}">Iniciar sesión</a>
+    <a href="{% url 'registro' %}">Registrarse</a>
+  {% endif %}
 </nav>
 
-<!-- CONTENIDO -->
 <main>
-    {% block content %}
-    {% endblock %}
+  {% block content %}
+  {% endblock %}
 </main>
 
-{% block img %}
-{% endblock %}
+{% block img %}{% endblock %}
 
-<!-- FOOTER -->
-<footer>
-    {% block footer %}
-    <p>© 2026 Mi Sitio Web</p>
-    {% endblock %}
+<footer class="site-footer">
+  {% block footer %}
+  <p>© 2026 Festival Internacional de las Luciérnagas · Todos los derechos reservados</p>
+  {% endblock %}
 </footer>
 
-{% block scripts %}
-{% endblock %}
+{% block scripts %}{% endblock %}
 
 </body>
 </html>

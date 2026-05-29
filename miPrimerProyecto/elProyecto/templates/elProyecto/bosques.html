@@ -1,0 +1,609 @@
+{% extends 'elProyecto/base.html' %}
+{% load static %}
+
+{% block title %}Bosques — Festival Luciérnagas 2026{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/bosques.css' %}">
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+
+  /* =========================
+     RESET MAIN PARA MAPA
+  ========================== */
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* =========================
+     SECCIÓN BIENVENIDA
+  ========================== */
+
+  .bienvenida {
+    padding: 40px 48px 30px;
+  }
+
+  /* =========================
+     CONTENEDOR DEL MAPA
+     Ocupa todo el espacio
+     disponible bajo el nav
+  ========================== */
+
+  .map-wrapper {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 130px); /* ajusta 130px según la altura real de header+nav */
+  }
+
+  /* =========================
+     MAPA FULLSCREEN
+  ========================== */
+
+  #map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* =========================
+     SIDEBAR PRINCIPAL
+     Flota a la derecha
+  ========================== */
+
+  .sidebar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 380px;
+    max-height: calc(100% - 32px);
+    z-index: 10;
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(
+      180deg,
+      rgba(6, 35, 28, 0.97),
+      rgba(4, 22, 18, 0.97)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 20px 20px 14px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header h2 {
+    color: white;
+    font-size: 1.3rem;
+    margin: 0 0 14px 0;
+  }
+
+  .sidebar-body {
+    overflow-y: auto;
+    padding: 0 20px 20px;
+    flex: 1;
+  }
+
+  /* scroll fino */
+  .sidebar-body::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 4px;
+  }
+
+  /* =========================
+     BUSCADOR
+  ========================== */
+
+  #search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+    transition: 0.2s ease;
+    box-sizing: border-box;
+  }
+
+  #search-input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  #search-input:focus {
+    border-color: #d7ff75;
+    background: rgba(255, 255, 255, 0.09);
+  }
+
+  /* =========================
+     TARJETAS
+  ========================== */
+
+  .location-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: 0.2s ease;
+    color: white;
+  }
+
+  .location-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.14);
+    transform: translateY(-2px);
+  }
+
+  .location-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .location-info {
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .location-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .location-address {
+    font-size: 0.82rem;
+    opacity: 0.75;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .location-hours {
+    font-size: 0.8rem;
+    color: #c5e8a0;
+  }
+
+  /* =========================
+     BOTÓN INFO
+  ========================== */
+
+  .info-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: 0.2s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .info-btn:hover {
+    background: #d7ff75;
+    color: black;
+    transform: scale(1.08);
+  }
+
+/* =========================
+  FOOTER TARJETA + BOTÓN
+========================== */
+
+.card-footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reserva-btn {
+  display: inline-block;
+  background: #1e7c45;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 20px;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.reserva-btn:hover {
+  background: #25a058;
+  transform: scale(1.03);
+}
+
+  /* =========================
+     SIDEBAR DETALLES
+     Overlay dentro del sidebar
+  ========================== */
+
+  .details-sidebar {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      160deg,
+      rgba(8, 42, 32, 0.99),
+      rgba(3, 18, 14, 0.99)
+    );
+    z-index: 20;
+    border-radius: 20px;
+    transform: translateX(110%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    padding: 28px 24px;
+    box-sizing: border-box;
+  }
+
+  .details-sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .details-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 4px;
+  }
+
+  .details-sidebar.active {
+    transform: translateX(0);
+  }
+
+  .details-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s ease;
+    line-height: 1;
+  }
+
+  .details-close:hover {
+    background: rgba(215, 255, 117, 0.2);
+    color: #d7ff75;
+  }
+
+  .details-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0 0 24px 0;
+    color: #d7ff75;
+    line-height: 1.3;
+    padding-right: 40px;
+  }
+
+  .details-item {
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .details-item:last-child {
+    border-bottom: none;
+  }
+
+  .details-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 6px;
+  }
+
+  .details-value {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+  }
+
+  /* =========================
+     BOTÓN TOGGLE SIDEBAR
+     (por si se quiere ocultar)
+  ========================== */
+
+  .sidebar-toggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 15;
+    background: rgba(6, 35, 28, 0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: white;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    display: none; /* se activa en responsive */
+    transition: 0.2s;
+  }
+
+  /* =========================
+     RESPONSIVE
+  ========================== */
+
+  @media (max-width: 720px) {
+
+    .map-wrapper {
+      height: calc(100vh - 110px);
+    }
+
+    .sidebar {
+      top: auto;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      width: 100%;
+      max-height: 45%;
+      border-radius: 20px 20px 0 0;
+    }
+
+    .details-sidebar {
+      border-radius: 20px 20px 0 0;
+    }
+  }
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="bienvenida">
+
+  <div class="luciernagas" aria-hidden="true">
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+    <span class="luciernaga"></span>
+  </div>
+
+  <span class="badge">🌲 Temporada activa</span>
+
+  <h2>
+    Bosques
+    <span class="acento">disponibles</span>
+  </h2>
+
+  <p>
+    Explora los parques oficiales del festival y elige tu lugar favorito
+    para vivir la magia de las luciérnagas.
+  </p>
+
+</section>
+
+<!-- CONTENEDOR MAPA FULLSCREEN -->
+<div class="map-wrapper">
+
+  <!-- MAPA -->
+  <div id="map"></div>
+
+  <!-- SIDEBAR FLOTANTE DERECHA -->
+  <div class="sidebar">
+
+    <div class="sidebar-header">
+      <h2>Santuarios</h2>
+      <input
+        type="text"
+        id="search-input"
+        placeholder="Buscar bosque..."
+      >
+    </div>
+
+    <div class="sidebar-body">
+      <div id="locations-list"></div>
+    </div>
+
+    <!-- PANEL DE DETALLES (overlay dentro del sidebar) -->
+    <div class="details-sidebar" id="details-sidebar">
+
+      <button class="details-close" id="details-close">×</button>
+
+      <div id="details-content"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{{ parques|json_script:"parques-data" }}
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+  const parques = JSON.parse(
+    document.getElementById('parques-data').textContent
+  );
+
+  const mexicoBounds = [
+    [14.0, -118.5],
+    [32.8, -86.5]
+  ];
+
+  const map = L.map('map', {
+    maxBounds: mexicoBounds,
+    maxBoundsViscosity: 1.0,
+    minZoom: 5,
+    maxZoom: 18,
+    zoomControl: true
+  }).setView([19.48, -98.54], 11);
+
+  L.tileLayer(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { attribution: '&copy; OpenStreetMap contributors' }
+  ).addTo(map);
+
+  const yellowIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
+  const locationsList   = document.getElementById('locations-list');
+  const searchInput     = document.getElementById('search-input');
+  const detailsSidebar  = document.getElementById('details-sidebar');
+  const detailsContent  = document.getElementById('details-content');
+  const detailsClose    = document.getElementById('details-close');
+
+  const markers = [];
+
+  // =========================
+  // CERRAR DETALLES
+  // =========================
+
+  detailsClose.addEventListener('click', () => {
+    detailsSidebar.classList.remove('active');
+  });
+
+  // =========================
+  // CREAR MARCADORES Y TARJETAS
+  // =========================
+
+  parques.forEach(parque => {
+
+    const lat = parseFloat(parque.latitud);
+    const lng = parseFloat(parque.longitud);
+
+    const marker = L.marker([lat, lng], { icon: yellowIcon }).addTo(map);
+
+    marker.bindPopup(`<b>${parque.nombre}</b><br>${parque.direccion}`);
+
+    // Tarjeta
+    const card = document.createElement('div');
+    card.className = 'location-card';
+    card.innerHTML = `
+    <div class="location-header">
+      <div class="location-info">
+        <div class="location-title"> ${parque.nombre}</div>
+        <div class="location-address"> ${parque.direccion}</div>
+        <div class="location-hours"> ${parque.horario}</div>
+      </div>
+      <button class="info-btn" title="Ver detalles">ℹ️</button>
+    </div>
+    <div class="card-footer">
+      <a href="{% url 'reservaciones' %}" class="reserva-btn">Reserva ahora</a>
+    </div>
+  `;
+
+    // Click en área de texto → vuela al marcador
+    card.querySelector('.location-info').addEventListener('click', () => {
+      map.flyTo([lat, lng], 15, { duration: 1.5 });
+      marker.openPopup();
+    });
+
+    // Click en ℹ️ → abre panel de detalles
+    card.querySelector('.info-btn').addEventListener('click', e => {
+
+      e.stopPropagation();
+
+      detailsContent.innerHTML = `
+        <h2 class="details-title">🌲 ${parque.nombre}</h2>
+
+        <div class="details-item">
+          <div class="details-label">Dirección</div>
+          <div class="details-value">${parque.direccion}</div>
+        </div>
+
+        <div class="details-item">
+          <div class="details-label">Horario</div>
+          <div class="details-value">${parque.horario}</div>
+        </div>
+
+        <div class="details-item">
+          <div class="details-label">Latitud</div>
+          <div class="details-value">${parque.latitud}</div>
+        </div>
+
+        <div class="details-item">
+          <div class="details-label">Longitud</div>
+          <div class="details-value">${parque.longitud}</div>
+        </div>
+
+        <div class="details-item">
+          <div class="details-label">Tiene cabañas</div>
+          <div class="details-value">${parque.tiene_cabanas ? 'Sí' : 'No'}</div>
+        </div>
+
+        <div class="details-item">
+          <div class="details-label">Capacidad camping</div>
+          <div class="details-value">${parque.capacidad_camping} personas</div>
+        </div>
+      `;
+
+      detailsSidebar.classList.add('active');
+    });
+
+    locationsList.appendChild(card);
+    markers.push({ parque, marker, card });
+  });
+
+  // =========================
+  // BUSCADOR
+  // =========================
+
+  searchInput.addEventListener('input', e => {
+
+    const texto = e.target.value.toLowerCase().trim();
+
+    markers.forEach(item => {
+
+      const coincide = item.parque.nombre.toLowerCase().includes(texto);
+
+      item.card.style.display = coincide ? 'block' : 'none';
+
+      if (coincide) {
+        item.marker.addTo(map);
+      } else {
+        map.removeLayer(item.marker);
+      }
+    });
+  });
+
+  // =========================
+  // INVALIDAR TAMAÑO AL CARGAR
+  // =========================
+
+  setTimeout(() => map.invalidateSize(), 100);
+
+</script>
+
+{% endblock %}
