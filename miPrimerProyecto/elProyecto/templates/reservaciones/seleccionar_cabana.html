@@ -1,0 +1,115 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}Seleccionar cabaña — Festival Luciérnagas 2026{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .form-card {
+    max-width: 520px;
+    margin: 2rem auto;
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 18px;
+    padding: 2rem;
+    box-shadow: var(--sombra-sm);
+  }
+  .form-card h2 { font-family: var(--font-titulo); color: var(--bosque-oscuro); margin-bottom: .25rem; }
+  .form-card .subtitulo { color: var(--texto-suave); font-size: .875rem; margin-bottom: 1.5rem; }
+  .resumen-fechas {
+    background: var(--menta-suave);
+    border: 1px solid rgba(29,158,117,.2);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: .875rem;
+    color: var(--texto);
+  }
+  .resumen-fechas strong { color: var(--bosque-oscuro); }
+  .form-label { color: var(--texto); font-weight: 500; margin-bottom: .3rem; font-size: .875rem; display: block; }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--bosque);
+    box-shadow: 0 0 0 .15rem rgba(29,158,117,.2);
+  }
+  .btn-reservar-submit {
+    width: 100%;
+    padding: .75rem;
+    background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%);
+    color: var(--bosque-oscuro);
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all var(--t-media);
+    box-shadow: 0 4px 14px rgba(246,201,68,.35);
+  }
+  .btn-reservar-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(246,201,68,.55); }
+  .errorlist { list-style: none; padding: 0; color: #c0392b; font-size: .85rem; margin-top: .25rem; }
+  .non-field-error {
+    background: #fff0f0;
+    border: 1px solid rgba(192,57,43,.3);
+    color: #c0392b;
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: .875rem;
+  }
+  .sin-disponibilidad { text-align: center; padding: 2rem; color: var(--texto-suave); }
+  .paso-tag { display: inline-block; background: var(--menta-suave); color: var(--bosque-medio); border-radius: 20px; padding: .2rem .75rem; font-size: .78rem; font-weight: 600; margin-bottom: .75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="seccion">
+  <div class="form-card">
+    <span class="paso-tag">Paso 2 de 2 — Elige tu cabaña</span>
+    <h2>{{ parque.nombre }}</h2>
+    <p class="subtitulo">🏡 Cabañas disponibles en esas fechas</p>
+
+    <div class="resumen-fechas">
+      <strong>Llegada:</strong> {{ fecha_inicio }} &nbsp;·&nbsp;
+      <strong>Salida:</strong> {{ fecha_termino }}
+    </div>
+
+    {% if form.fields.cabana.queryset.count == 0 %}
+      <div class="sin-disponibilidad">
+        <div style="font-size:2.5rem; margin-bottom:.75rem;">🌙</div>
+        <p>No hay cabañas disponibles para esas fechas.</p>
+        <a href="{% url 'reservar_paso1' parque.id %}" style="color:var(--bosque);">← Cambiar fechas</a>
+      </div>
+    {% else %}
+
+      {% if form.non_field_errors %}
+        <div class="non-field-error">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.cabana.id_for_label }}">{{ form.cabana.label }}</label>
+          {{ form.cabana }}
+          {% if form.cabana.errors %}<ul class="errorlist">{% for e in form.cabana.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label" for="{{ form.numero_personas.id_for_label }}">{{ form.numero_personas.label }}</label>
+          {{ form.numero_personas }}
+          <small style="color:var(--texto-suave); font-size:.8rem;">La cabaña seleccionada te indicará si tiene cupo suficiente.</small>
+          {% if form.numero_personas.errors %}<ul class="errorlist">{% for e in form.numero_personas.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <button type="submit" class="btn-reservar-submit">Confirmar reservación</button>
+      </form>
+
+      <p style="margin-top:1rem; text-align:center;">
+        <a href="{% url 'reservar_paso1' parque.id %}" style="color:var(--texto-suave); font-size:.875rem;">← Cambiar fechas o tipo</a>
+      </p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

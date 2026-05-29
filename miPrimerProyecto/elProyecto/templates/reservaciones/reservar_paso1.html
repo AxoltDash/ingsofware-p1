@@ -1,0 +1,154 @@
+{% extends 'elProyecto/base.html' %}
+{% load static %}
+
+{% block title %}Reservar en {{ parque.nombre }} — Festival Luciérnagas 2026{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .form-card {
+    max-width: 520px;
+    margin: 2rem auto;
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 18px;
+    padding: 2rem;
+    box-shadow: var(--sombra-sm);
+  }
+  .form-card h2 { font-family: var(--font-titulo); color: var(--bosque-oscuro); margin-bottom: .25rem; }
+  .form-card .subtitulo { color: var(--texto-suave); font-size: .875rem; margin-bottom: 1.5rem; }
+  .form-label { color: var(--texto); font-weight: 500; margin-bottom: .3rem; font-size: .875rem; display: block; }
+  .form-control:focus { border-color: var(--bosque); box-shadow: 0 0 0 .15rem rgba(29,158,117,.2); }
+  .form-check-label { color: var(--texto); }
+  .form-check-input:checked { background-color: var(--bosque); border-color: var(--bosque); }
+  .tipo-option {
+    border: 1.5px solid var(--borde);
+    border-radius: 10px;
+    padding: .75rem 1rem;
+    margin-bottom: .5rem;
+    cursor: pointer;
+    transition: all var(--t-rapida);
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+  .tipo-option:hover { border-color: var(--bosque); background: var(--fondo-alt); }
+  .tipo-option.seleccionada { border-color: var(--bosque); background: var(--menta-suave); }
+  .tipo-option .tipo-icono { font-size: 1.4rem; }
+  .tipo-option .tipo-desc { font-size: .8rem; color: var(--texto-suave); }
+  .btn-reservar-submit {
+    width: 100%;
+    padding: .75rem;
+    background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%);
+    color: var(--bosque-oscuro);
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all var(--t-media);
+    box-shadow: 0 4px 14px rgba(246,201,68,.35);
+  }
+  .btn-reservar-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(246,201,68,.55); }
+  .errorlist { list-style: none; padding: 0; color: #c0392b; font-size: .85rem; margin-top: .25rem; }
+  .non-field-error {
+    background: #fff0f0;
+    border: 1px solid rgba(192,57,43,.3);
+    color: #c0392b;
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: .875rem;
+  }
+  .paso-tag { display: inline-block; background: var(--menta-suave); color: var(--bosque-medio); border-radius: 20px; padding: .2rem .75rem; font-size: .78rem; font-weight: 600; margin-bottom: .75rem; }
+  #bloque-personas { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="seccion">
+  <div class="form-card">
+    <span class="paso-tag">Elige fecha y tipo de visita</span>
+    <h2>{{ parque.nombre }}</h2>
+    <p class="subtitulo">📍 {{ parque.direccion }}</p>
+
+    {% if form.non_field_errors %}
+      <div class="non-field-error">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate id="form-reserva">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.fecha_inicio.id_for_label }}">{{ form.fecha_inicio.label }}</label>
+        {{ form.fecha_inicio }}
+        {% if form.fecha_inicio.errors %}<ul class="errorlist">{% for e in form.fecha_inicio.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.fecha_termino.id_for_label }}">{{ form.fecha_termino.label }}</label>
+        {{ form.fecha_termino }}
+        {% if form.fecha_termino.errors %}<ul class="errorlist">{% for e in form.fecha_termino.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.tipo_visita.label }}</label>
+        {% for radio in form.tipo_visita %}
+        <label class="tipo-option{% if form.tipo_visita.value == radio.data.value %} seleccionada{% endif %}" id="label-{{ radio.data.value }}">
+          {{ radio.tag }}
+          <span class="tipo-icono">{% if radio.data.value == 'CAMPING' %}⛺{% else %}🏡{% endif %}</span>
+          <span>
+            <strong>{{ radio.choice_label }}</strong>
+            <span class="tipo-desc d-block">{% if radio.data.value == 'CAMPING' %}Zona compartida de acampado{% else %}Selecciona tu cabaña en el siguiente paso{% endif %}</span>
+          </span>
+        </label>
+        {% endfor %}
+        {% if form.tipo_visita.errors %}<ul class="errorlist">{% for e in form.tipo_visita.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="mb-4" id="bloque-personas">
+        <label class="form-label" for="{{ form.numero_personas.id_for_label }}">{{ form.numero_personas.label }}</label>
+        {{ form.numero_personas }}
+        {% if form.numero_personas.errors %}<ul class="errorlist">{% for e in form.numero_personas.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <button type="submit" class="btn-reservar-submit">Continuar →</button>
+    </form>
+
+    <p style="margin-top:1rem; text-align:center;">
+      <a href="{% url 'bosques' %}" style="color:var(--texto-suave); font-size:.875rem;">← Volver a bosques</a>
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const radios = document.querySelectorAll('input[name="tipo_visita"]');
+  const bloquePersonas = document.getElementById('bloque-personas');
+  const inputPersonas = document.getElementById('{{ form.numero_personas.id_for_label }}');
+
+  function actualizarVista() {
+    const seleccionado = document.querySelector('input[name="tipo_visita"]:checked');
+
+    // resaltar tarjeta seleccionada
+    document.querySelectorAll('.tipo-option').forEach(el => el.classList.remove('seleccionada'));
+    if (seleccionado) {
+      document.getElementById('label-' + seleccionado.value).classList.add('seleccionada');
+    }
+
+    // mostrar/ocultar bloque de personas
+    const esCamping = seleccionado && seleccionado.value === 'CAMPING';
+    bloquePersonas.style.display = esCamping ? 'block' : 'none';
+    inputPersonas.required = esCamping;
+  }
+
+  radios.forEach(r => r.addEventListener('change', actualizarVista));
+
+  // ejecutar al cargar la página (por si el form volvió con errores y ya hay un valor seleccionado)
+  actualizarVista();
+</script>
+{% endblock %}

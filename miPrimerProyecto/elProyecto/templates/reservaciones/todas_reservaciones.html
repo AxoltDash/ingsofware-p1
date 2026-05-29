@@ -1,0 +1,99 @@
+{% extends 'elProyecto/base.html' %}
+
+{% block title %}Todas las reservaciones — CEPUAC Admin{% endblock %}
+
+{% block styles %}
+<style>
+  .tabla-reservaciones {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+    background: var(--blanco);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--sombra-sm);
+  }
+  .tabla-reservaciones th {
+    background: var(--bosque-oscuro);
+    color: var(--luc);
+    padding: .75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-family: var(--font-titulo);
+    font-size: .8rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .tabla-reservaciones td {
+    padding: .7rem 1rem;
+    border-bottom: 1px solid var(--borde-claro);
+    color: var(--texto);
+    vertical-align: middle;
+  }
+  .tabla-reservaciones tbody tr:hover td { background: var(--fondo-alt); }
+  .estado-badge {
+    display: inline-block;
+    padding: .2rem .6rem;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .estado-ACTIVA    { background: var(--menta-suave); color: var(--bosque-medio); border: 1px solid rgba(29,158,117,.3); }
+  .estado-CANCELADA { background: #fff0f0; color: #c0392b; border: 1px solid rgba(192,57,43,.3); }
+  .estado-FINALIZADA { background: var(--fondo-alt); color: var(--texto-suave); border: 1px solid var(--borde); }
+  .tabla-wrap { overflow-x: auto; border-radius: 12px; }
+  .contador { font-size: .875rem; color: var(--texto-suave); margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bienvenida">
+  <span class="badge">🔒 Panel administrador</span>
+  <h2>Todas las <span class="acento">reservaciones</span></h2>
+  <p>Vista completa del sistema de reservaciones del festival.</p>
+</section>
+
+<section class="seccion">
+  <p class="contador">{{ reservaciones|length }} reservación{{ reservaciones|length|pluralize:"es" }} registrada{{ reservaciones|length|pluralize:"s" }}</p>
+  {% if reservaciones %}
+  <div class="tabla-wrap">
+    <table class="tabla-reservaciones">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Parque</th>
+          <th>Tipo</th>
+          <th>Cabaña</th>
+          <th>Llegada</th>
+          <th>Salida</th>
+          <th>Personas</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservaciones %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.cliente.get_full_name|default:r.cliente.email }}</td>
+          <td>{{ r.parque.nombre }}</td>
+          <td>{{ r.get_tipo_visita_display }}</td>
+          <td>{{ r.cabana.nombre|default:"—" }}</td>
+          <td>{{ r.fecha_inicio }}</td>
+          <td>{{ r.fecha_termino }}</td>
+          <td>{{ r.numero_personas }}</td>
+          <td><span class="estado-badge estado-{{ r.estado }}">{{ r.get_estado_display }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div style="text-align:center; padding:3rem; color:var(--texto-suave);">
+      <div style="font-size:3rem; margin-bottom:1rem;">📋</div>
+      <p>No hay reservaciones registradas aún.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

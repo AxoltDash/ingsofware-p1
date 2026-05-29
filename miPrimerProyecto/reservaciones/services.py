@@ -30,29 +30,26 @@ class GestorReservaciones:
             fecha += timedelta(days=1)
 
     @staticmethod
-    def cabanas_disponibles(parque, fecha_inicio, fecha_termino, numero_personas):
+    def cabanas_disponibles(parque, fecha_inicio, fecha_termino):
         """
-        Devuelve cabañas del parque que cumplen ambas condiciones:
-          1. Capacidad individual >= numero_personas
-          2. Sin reservación ACTIVA solapada en el rango de fechas
-        Usado para mostrar opciones al cliente antes de reservar. 
+        Devuelve cabañas activas del parque sin reservación solapada en el rango de fechas.
+        No filtra por capacidad aquí: el cliente ve todas las opciones libres y elige;
+        la validación de capacidad ocurre en verificar_disponibilidad_cabana al crear.
         """
         from parques.models import Cabana  # importación local para romper el circular import: reservaciones ↔ parques
 
-        # obtener solo los IDs de cabañas ya ocupadas en ese rango
         cabanas_ocupadas_ids = Reservacion.objects.filter(
             parque=parque,
             tipo_visita=TipoVisita.CABANA,
             estado=EstadoReservacion.ACTIVA,
-            fecha_inicio__lt=fecha_termino,  # condición de solapamiento: empieza antes de que termine la solicitada
-            fecha_termino__gt=fecha_inicio   # y termina después de que empiece la solicitada
-        ).values_list('cabana_id', flat=True)  # flat=True devuelve una lista plana de IDs, no tuplas (id,)
+            fecha_inicio__lt=fecha_termino,
+            fecha_termino__gt=fecha_inicio
+        ).values_list('cabana_id', flat=True)
 
         return Cabana.objects.filter(
             parque=parque,
             activo=True,
-            capacidad__gte=numero_personas       # gte = "greater than or equal": solo cabañas donde cabe el grupo
-        ).exclude(id__in=cabanas_ocupadas_ids)   # excluye las ocupadas en esas fechas
+        ).exclude(id__in=cabanas_ocupadas_ids)
 
     @staticmethod
     def verificar_disponibilidad_cabana(cabana, fecha_inicio, fecha_termino, numero_personas):
@@ -182,6 +179,34 @@ class ServicioCorreo:
         except Exception:
             # [OWASP 2.7] loggear solo el ID, nunca el contenido del correo ni datos del cliente
             logger.error(f"Error al enviar confirmación reservacion_id={reservacion.id}")
+
+    @staticmethod
+    def enviar_cancelacion(reservacion):
+        """RF-03.3: notifica al cliente cuando su reservación es cancelada."""
+        cabana_info = f" — {reservacion.cabana.nombre}" if reservacion.cabana else ""
+        tipo_display = reservacion.get_tipo_visita_display()
+
+        mensaje = (
+            f"Hola {reservacion.cliente.first_name},\n\n"
+            f"Tu reservación ha sido cancelada:\n\n"
+            f"  Parque:   {reservacion.parque.nombre}\n"
+            f"  Tipo:     {tipo_display}{cabana_info}\n"
+            f"  Personas: {reservacion.numero_personas}\n"
+            f"  Desde:    {reservacion.fecha_inicio}\n"
+            f"  Hasta:    {reservacion.fecha_termino}\n\n"
+            f"Si crees que esto fue un error, por favor contáctanos.\n\n"
+            f"CEPUAC — Sistema de Reservaciones\n"
+        )
+        try:
+            send_mail(
+                subject='Cancelación de reservación — CEPUAC',
+                message=mensaje,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[reservacion.cliente.email],
+                fail_silently=False,
+            )
+        except Exception:
+            logger.error(f"Error al enviar cancelación reservacion_id={reservacion.id}")
 
     @staticmethod
     def enviar_recuperacion(usuario, token):

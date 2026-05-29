@@ -32,10 +32,13 @@
       <p class="bosque-horario">🕐 {{ parque.horario }}</p>
       <div class="bosque-tipos">
         <span class="tipo-tag tipo-camping">⛺ Camping</span>
-        {% if parque.tiene_cabana %}
+        {% if parque.tiene_cabanas %}
         <span class="tipo-tag tipo-cabana">🏡 Cabaña</span>
         {% endif %}
       </div>
+      {% if user.is_authenticated and user.cliente %}
+      <a href="{% url 'reservar_paso1' parque.id %}" class="btn-reservar">Reservar</a>
+      {% endif %}
     </div>
     {% empty %}
     <div class="bosques-vacio">

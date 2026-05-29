@@ -31,6 +31,12 @@
   <a href="{% url 'home' %}">Inicio</a>
   <a href="{% url 'bosques' %}">Bosques</a>
   {% if user.is_authenticated %}
+    {% if user.cliente %}
+      <a href="{% url 'mis_reservaciones' %}">Mis reservaciones</a>
+    {% endif %}
+    {% if user.administrador %}
+      <a href="{% url 'todas_reservaciones' %}">Todas las reservaciones</a>
+    {% endif %}
     <form action="{% url 'logout' %}" method="post" style="display:inline;">
       {% csrf_token %}
       <button type="submit" class="navbar-btn">Cerrar sesión</button>
@@ -42,6 +48,13 @@
 </nav>
 
 <main>
+  {% if messages %}
+    <div class="mensajes">
+      {% for msg in messages %}
+        <div class="mensaje mensaje-{{ msg.tags }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
   {% block content %}
   {% endblock %}
 </main>
