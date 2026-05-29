@@ -178,3 +178,73 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# ── FASE 7: Gestión de errores y logs ────────────────────────────────────────
+
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        # [OWASP 2.7] JSON estructurado en prod facilita análisis con herramientas externas
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+        },
+        'simple': {
+            'format': '[{levelname}] {asctime} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        # [OWASP 2.7] Archivo rotativo — máx 5 MB × 3 copias; acceso restringido al servidor
+        'archivo': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'cepuac.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'simple' if DEBUG else 'json',
+            'encoding': 'utf-8',
+        },
+        'consola': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        # logger general del sistema
+        'cepuac': {
+            'handlers': ['archivo', 'consola'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # logger de acciones del administrador — nivel WARNING para desactivaciones
+        'cepuac.admin': {
+            'handlers': ['archivo', 'consola'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# [OWASP 2.7] Django filtra automáticamente contraseñas de reportes de error
+# Los loggers del proyecto solo registran IDs, nunca contenido sensible (tokens, emails, passwords)
+SENSITIVE_POST_PARAMETERS = ['password', 'password1', 'password2', 'new_password1', 'new_password2']
+
+# ── FASE 8: Seguridad en comunicaciones ──────────────────────────────────────
+
+# [OWASP 2.10] Headers de seguridad — activos en dev y prod
+X_FRAME_OPTIONS             = 'DENY'           # previene clickjacking
+SECURE_CONTENT_TYPE_NOSNIFF = True             # previene MIME sniffing
+SECURE_REFERRER_POLICY      = 'same-origin'    # no filtrar Referer a dominios externos
+
+# [OWASP 2.9] HTTPS + HSTS — solo en producción (DEBUG=False)
+# En dev quedan desactivados para no romper HTTP local
+if not DEBUG:
+    SECURE_SSL_REDIRECT            = True       # redirige HTTP → HTTPS
+    SECURE_HSTS_SECONDS            = 31536000   # 1 año — fuerza HTTPS en el navegador
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD            = True       # permite inclusión en listas HSTS preload
+    SECURE_PROXY_SSL_HEADER        = ('HTTP_X_FORWARDED_PROTO', 'https')  # para proxies/CDN

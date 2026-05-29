@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error del servidor — Festival Luciérnagas 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <style>
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: var(--fondo); text-align: center; padding: 2rem; }
+    .error-codigo { font-family: var(--font-titulo); font-size: 8rem; font-weight: 700; color: var(--bosque-oscuro); line-height: 1; margin-bottom: .5rem; }
+    .error-titulo { font-family: var(--font-titulo); font-size: 1.6rem; color: var(--bosque-oscuro); margin-bottom: .75rem; }
+    .error-desc { color: var(--texto-suave); font-size: 1rem; max-width: 440px; margin: 0 auto 2rem; line-height: 1.7; }
+    .btn-inicio { background: linear-gradient(135deg, var(--luc) 0%, var(--luc-fuerte) 100%); color: var(--bosque-oscuro); padding: .75rem 1.8rem; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: .95rem; box-shadow: 0 4px 14px rgba(246,201,68,.35); transition: all .28s ease; display: inline-block; }
+    .btn-inicio:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(246,201,68,.55); }
+    .error-icono { font-size: 4rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="error-icono">⚡</div>
+  <div class="error-codigo">500</div>
+  <h1 class="error-titulo">Error interno del servidor</h1>
+  <p class="error-desc">Algo salió mal de nuestro lado. El problema ha sido registrado y lo revisaremos pronto. Intenta de nuevo en unos minutos.</p>
+  <a href="/" class="btn-inicio">Volver al inicio</a>
+</body>
+</html>
