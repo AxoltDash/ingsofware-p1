@@ -1,7 +1,7 @@
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from parques.models import Parque
+from usuarios.decorators import requiere_cliente
 
 
 def home(request):
@@ -13,6 +13,6 @@ def bosques(request):
     return render(request, 'elProyecto/bosques.html', {'parques': parques})
 
 
-@login_required
+@requiere_cliente  # reemplaza @login_required: ahora solo clientes pueden entrar, no admins
 def siames(request):
     return render(request, 'elProyecto/siames.html')
