@@ -446,6 +446,7 @@
 {# Datos de contexto Django en atributos HTML — evita que el linter JS confunda las etiquetas de template #}
 <div id="page-config"
   data-reservar-url="{% url 'reservar_paso1' 0 %}"
+  data-disponibilidad-url="{% url 'api_disponibilidad' %}"
   data-puede-reservar="{% if user.is_authenticated and user.cliente %}1{% else %}0{% endif %}"
   hidden></div>
 
@@ -453,8 +454,9 @@
 
 <script>
   const _cfg = document.getElementById('page-config').dataset;
-  const RESERVAR_URL_TPL = _cfg.reservarUrl;
-  const PUEDE_RESERVAR = _cfg.puedeReservar === '1';
+  const RESERVAR_URL_TPL   = _cfg.reservarUrl;
+  const DISPONIBILIDAD_URL = _cfg.disponibilidadUrl;
+  const PUEDE_RESERVAR     = _cfg.puedeReservar === '1';
 
   const parques = JSON.parse(
     document.getElementById('parques-data').textContent
@@ -478,13 +480,41 @@
     { attribution: '&copy; OpenStreetMap contributors' }
   ).addTo(map);
 
-  const yellowIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+  // =========================
+  // ICONOS DE MARCADOR
+  // Círculo coloreado por disponibilidad
+  // =========================
+
+  function crearIcono(disponible) {
+    const color  = disponible ? '#2ecc71' : '#e74c3c';
+    const borde  = disponible ? '#1a8a4a' : '#922b21';
+    return L.divIcon({
+      className: '',
+      html: `<div style="
+        background:${color};
+        width:18px;height:18px;
+        border-radius:50%;
+        border:2.5px solid ${borde};
+        box-shadow:0 2px 8px rgba(0,0,0,.45);
+      "></div>`,
+      iconSize:   [18, 18],
+      iconAnchor: [9, 9],
+      popupAnchor:[0, -12],
+    });
+  }
+
+  const iconoPendiente = L.divIcon({
+    className: '',
+    html: `<div style="
+      background:#f0c040;
+      width:18px;height:18px;
+      border-radius:50%;
+      border:2.5px solid #b8961a;
+      box-shadow:0 2px 8px rgba(0,0,0,.35);
+    "></div>`,
+    iconSize:   [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor:[0, -12],
   });
 
   const locationsList   = document.getElementById('locations-list');
@@ -512,75 +542,60 @@
     const lat = parseFloat(parque.latitud);
     const lng = parseFloat(parque.longitud);
 
-    const marker = L.marker([lat, lng], { icon: yellowIcon }).addTo(map);
-
+    const marker = L.marker([lat, lng], { icon: iconoPendiente }).addTo(map);
     marker.bindPopup(`<b>${parque.nombre}</b><br>${parque.direccion}`);
 
     const reservarUrl = RESERVAR_URL_TPL.replace('/0/', '/' + parque.id + '/');
-    const botonReservar = PUEDE_RESERVAR
-      ? `<a href="${reservarUrl}" class="reserva-btn">Reserva ahora</a>`
-      : '';
 
-    // Tarjeta
     const card = document.createElement('div');
     card.className = 'location-card';
+    card.dataset.parqueId = parque.id;
     card.innerHTML = `
-    <div class="location-header">
-      <div class="location-info">
-        <div class="location-title"> ${parque.nombre}</div>
-        <div class="location-address"> ${parque.direccion}</div>
-        <div class="location-hours"> ${parque.horario}</div>
+      <div class="location-header">
+        <div class="location-info">
+          <div class="location-title">${parque.nombre}</div>
+          <div class="location-address">${parque.direccion}</div>
+          <div class="location-hours">${parque.horario}</div>
+        </div>
+        <button class="info-btn" title="Ver detalles">ℹ️</button>
       </div>
-      <button class="info-btn" title="Ver detalles">ℹ️</button>
-    </div>
-    ${botonReservar ? `<div class="card-footer">${botonReservar}</div>` : ''}
-  `;
+      <div class="card-footer" style="justify-content:space-between;align-items:center;">
+        <span class="disp-badge" style="
+          font-size:.75rem;font-weight:600;padding:3px 10px;
+          border-radius:20px;background:rgba(255,255,255,.1);color:#aaa;
+        ">Verificando…</span>
+        ${PUEDE_RESERVAR
+          ? `<a href="${reservarUrl}" class="reserva-btn disp-btn">Reserva ahora</a>`
+          : ''}
+      </div>
+    `;
 
-    // Click en área de texto → vuela al marcador
     card.querySelector('.location-info').addEventListener('click', () => {
       map.flyTo([lat, lng], 15, { duration: 1.5 });
       marker.openPopup();
     });
 
-    // Click en ℹ️ → abre panel de detalles
     card.querySelector('.info-btn').addEventListener('click', e => {
-
       e.stopPropagation();
-
       detailsContent.innerHTML = `
         <h2 class="details-title">🌲 ${parque.nombre}</h2>
-
         <div class="details-item">
           <div class="details-label">Dirección</div>
           <div class="details-value">${parque.direccion}</div>
         </div>
-
         <div class="details-item">
           <div class="details-label">Horario</div>
           <div class="details-value">${parque.horario}</div>
         </div>
-
-        <div class="details-item">
-          <div class="details-label">Latitud</div>
-          <div class="details-value">${parque.latitud}</div>
-        </div>
-
-        <div class="details-item">
-          <div class="details-label">Longitud</div>
-          <div class="details-value">${parque.longitud}</div>
-        </div>
-
         <div class="details-item">
           <div class="details-label">Tiene cabañas</div>
           <div class="details-value">${parque.tiene_cabanas ? 'Sí' : 'No'}</div>
         </div>
-
         <div class="details-item">
           <div class="details-label">Capacidad camping</div>
           <div class="details-value">${parque.capacidad_camping} personas</div>
         </div>
       `;
-
       detailsSidebar.classList.add('active');
     });
 
@@ -593,21 +608,77 @@
   // =========================
 
   searchInput.addEventListener('input', e => {
-
     const texto = e.target.value.toLowerCase().trim();
-
     markers.forEach(item => {
-
       const coincide = item.parque.nombre.toLowerCase().includes(texto);
-
       item.card.style.display = coincide ? 'block' : 'none';
-
       if (coincide) {
         item.marker.addTo(map);
       } else {
         map.removeLayer(item.marker);
       }
     });
+  });
+
+  // =========================
+  // DISPONIBILIDAD EN TIEMPO REAL
+  // Fetch al cargar + polling cada 60 s + al volver a la pestaña
+  // =========================
+
+  function aplicarDisponibilidad(data) {
+    markers.forEach(item => {
+      const d = data[item.parque.id];
+      if (!d) return;
+
+      item.marker.setIcon(crearIcono(d.disponible));
+
+      const badge = item.card.querySelector('.disp-badge');
+      const btn   = item.card.querySelector('.disp-btn');
+
+      if (badge) {
+        if (d.disponible) {
+          badge.textContent      = 'Disponible';
+          badge.style.background = 'rgba(46,204,113,.18)';
+          badge.style.color      = '#2ecc71';
+        } else {
+          badge.textContent      = 'Sin disponibilidad';
+          badge.style.background = 'rgba(231,76,60,.18)';
+          badge.style.color      = '#e74c3c';
+        }
+      }
+
+      if (btn) {
+        if (d.disponible) {
+          btn.removeAttribute('aria-disabled');
+          btn.style.opacity       = '';
+          btn.style.pointerEvents = '';
+          btn.textContent         = 'Reserva ahora';
+        } else {
+          btn.setAttribute('aria-disabled', 'true');
+          btn.style.opacity       = '0.35';
+          btn.style.pointerEvents = 'none';
+          btn.textContent         = 'Sin disponibilidad';
+        }
+      }
+    });
+  }
+
+  function fetchDisponibilidad() {
+    fetch(DISPONIBILIDAD_URL)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(aplicarDisponibilidad)
+      .catch(() => {}); // fallo silencioso — datos previos permanecen visibles
+  }
+
+  // Carga inicial
+  fetchDisponibilidad();
+
+  // Polling cada 60 s
+  setInterval(fetchDisponibilidad, 60_000);
+
+  // Refresh al volver a la pestaña después de estar oculta
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') fetchDisponibilidad();
   });
 
   // =========================

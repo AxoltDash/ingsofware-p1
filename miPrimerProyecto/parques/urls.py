@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('api/marcadores/', views.api_marcadores, name='api_marcadores'),
+    path('api/disponibilidad/', views.api_disponibilidad, name='api_disponibilidad'),
 
     # Panel de administrador — parques
     path('admin/', views.admin_parques, name='admin_parques'),

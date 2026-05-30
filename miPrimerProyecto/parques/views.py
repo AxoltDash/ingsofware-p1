@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from usuarios.decorators import requiere_admin
 from .forms import CabanaForm, CapacidadCampingForm, ParqueForm
@@ -18,6 +19,25 @@ def api_marcadores(request):
         'id', 'nombre', 'latitud', 'longitud', 'direccion'
     )
     return JsonResponse(list(parques), safe=False)
+
+
+@require_GET
+def api_disponibilidad(request):
+    """
+    Indica si cada parque activo puede recibir reservaciones en algún momento
+    del festival (junio-agosto). Un parque está disponible si tiene capacidad
+    de camping > 0 o al menos una cabaña activa. No necesita autenticación.
+    """
+    resultado = {
+        parque.id: {
+            'disponible': (
+                parque.capacidad_camping > 0
+                or Cabana.objects.filter(parque=parque, activo=True).exists()
+            )
+        }
+        for parque in Parque.objects.filter(activo=True)
+    }
+    return JsonResponse(resultado)
 
 
 # ── Gestión de parques ────────────────────────────────────────────────────────
